@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/services/auth_service.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
@@ -24,37 +26,92 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  void _showError(String message) {
+    setState(() => _errorMessage = message);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red.shade400,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
   void _login() async {
-    setState(() => _isLoading = true);
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      _showError('Please enter email and password');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
     
-    // TODO: Implement Firebase Auth
-    await Future.delayed(const Duration(seconds: 1));
+    final authService = ref.read(authServiceProvider);
+    final result = await authService.signInWithEmail(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
     
     if (mounted) {
       setState(() => _isLoading = false);
-      context.go('/home');
+      
+      if (result.isSuccess) {
+        context.go('/home');
+      } else {
+        _showError(result.error ?? 'Sign in failed');
+      }
     }
   }
 
   void _signInWithGoogle() async {
-    setState(() => _isLoading = true);
-    
     // TODO: Implement Google Sign In
-    await Future.delayed(const Duration(seconds: 1));
-    
-    if (mounted) {
-      setState(() => _isLoading = false);
-      context.go('/home');
-    }
+    _showError('Google Sign In coming soon!');
   }
 
   void _signInWithApple() async {
     // TODO: Implement Apple Sign In
-    context.go('/home');
+    _showError('Apple Sign In coming soon!');
   }
 
   void _continueAsGuest() {
     context.go('/home');
+  }
+
+  void _forgotPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      _showError('Please enter your email first');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    
+    final authService = ref.read(authServiceProvider);
+    final result = await authService.sendPasswordResetEmail(email);
+    
+    if (mounted) {
+      setState(() => _isLoading = false);
+      
+      if (result.isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Password reset email sent!'),
+            backgroundColor: Colors.green.shade400,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      } else {
+        _showError(result.error ?? 'Failed to send reset email');
+      }
+    }
+  }
+
+  void _goToSignUp() {
+    context.push('/signup');
   }
 
   @override
@@ -181,7 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {},
+                  onPressed: _forgotPassword,
                   child: const Text('Forgot Password?'),
                 ),
               ),
@@ -265,7 +322,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: _goToSignUp,
                       child: const Text('Sign Up'),
                     ),
                   ],

@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/services/auth_service.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateProvider);
+    final user = authState.value;
+    
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -46,17 +51,24 @@ class ProfileScreen extends StatelessWidget {
                           width: 3,
                         ),
                       ),
-                      child: const Icon(
-                        Icons.person_rounded,
-                        size: 48,
-                        color: Colors.white,
-                      ),
+                      child: user?.photoURL != null
+                          ? ClipOval(
+                              child: Image.network(
+                                user!.photoURL!,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.person_rounded,
+                              size: 48,
+                              color: Colors.white,
+                            ),
                     ),
                     const SizedBox(height: 16),
                     
                     // Name
                     Text(
-                      'John Doe',
+                      user?.displayName ?? 'Guest User',
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -66,7 +78,7 @@ class ProfileScreen extends StatelessWidget {
                     
                     // Email
                     Text(
-                      'john.doe@example.com',
+                      user?.email ?? 'Not signed in',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.white.withOpacity(0.9),
                       ),
@@ -93,7 +105,7 @@ class ProfileScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Member since Dec 2024',
+                            user != null ? 'Member since Dec 2024' : 'Sign in to save progress',
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Colors.white,
                             ),
@@ -216,7 +228,13 @@ class ProfileScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () => context.go('/login'),
+                  onPressed: () async {
+                    final authService = ref.read(authServiceProvider);
+                    await authService.signOut();
+                    if (context.mounted) {
+                      context.go('/login');
+                    }
+                  },
                   icon: const Icon(Icons.logout_rounded, color: AppColors.error),
                   label: const Text(
                     'Log Out',
