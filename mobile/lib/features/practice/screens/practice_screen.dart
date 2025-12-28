@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/services/audio_service.dart';
 import '../widgets/recording_button.dart';
 import '../widgets/waveform_visualizer.dart';
 import '../widgets/feedback_card.dart';
@@ -19,8 +22,11 @@ class _PracticeScreenState extends State<PracticeScreen> {
   PracticeState _state = PracticeState.idle;
   int _recordingSeconds = 0;
   Timer? _timer;
+  final AudioService _audioService = AudioService();
+  File? _recordedFile;
+  bool _isPlaying = false;
   
-  // Mock feedback data
+  // Mock feedback data (will be replaced with API response later)
   final _feedback = PracticeFeedback(
     transcription: "Hello, my name is John and I would like to order a coffee please.",
     correctedText: "Hello, my name is John, and I would like to order a coffee, please.",
@@ -36,45 +42,123 @@ class _PracticeScreenState extends State<PracticeScreen> {
     ],
   );
 
-  void _startRecording() {
-    setState(() {
-      _state = PracticeState.recording;
-      _recordingSeconds = 0;
-    });
-    
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _recordingSeconds++;
-      });
-      
-      // Auto-stop after 60 seconds
-      if (_recordingSeconds >= 60) {
-        _stopRecording();
-      }
-    });
+  @override
+  void initState() {
+    super.initState();
+    _checkPermissions();
   }
 
-  void _stopRecording() {
-    _timer?.cancel();
-    setState(() {
-      _state = PracticeState.processing;
-    });
-    
-    // Simulate processing
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
+  Future<void> _checkPermissions() async {
+    final hasPermission = await _audioService.requestPermission();
+    if (!hasPermission && mounted) {
+      _showErrorSnackBar('Microphone permission is required for speech practice');
+    }
+  }
+
+  void _startRecording() async {
+    try {
+      await _audioService.startRecording();
+      
+      setState(() {
+        _state = PracticeState.recording;
+        _recordingSeconds = 0;
+      });
+      
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         setState(() {
-          _state = PracticeState.feedback;
+          _recordingSeconds++;
         });
-      }
-    });
+        
+        // Auto-stop after 60 seconds
+        if (_recordingSeconds >= 60) {
+          _stopRecording();
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
+      _showErrorSnackBar('Failed to start recording: $e');
+    }
+  }
+
+  void _stopRecording() async {
+    _timer?.cancel();
+    
+    try {
+      final file = await _audioService.stopRecording();
+      _recordedFile = file;
+      
+      setState(() {
+        _state = PracticeState.processing;
+      });
+      
+      // TODO: Send to backend API for speech analysis
+      // For now, simulate processing
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          setState(() {
+            _state = PracticeState.feedback;
+          });
+        }
+      });
+    } catch (e) {
+      _showErrorSnackBar('Failed to stop recording: $e');
+      _reset();
+    }
+  }
+
+  void _cancelRecording() async {
+    _timer?.cancel();
+    await _audioService.cancelRecording();
+    _reset();
+  }
+
+  void _playRecording() async {
+    if (_recordedFile == null) return;
+    
+    try {
+      setState(() => _isPlaying = true);
+      await _audioService.playRecording(_recordedFile!.path);
+      
+      // Listen for playback completion
+      _audioService.playerStateStream.listen((state) {
+        if (state == PlayerState.completed || state == PlayerState.stopped) {
+          if (mounted) {
+            setState(() => _isPlaying = false);
+          }
+        }
+      });
+    } catch (e) {
+      setState(() => _isPlaying = false);
+      _showErrorSnackBar('Failed to play recording: $e');
+    }
+  }
+
+  void _stopPlayback() async {
+    await _audioService.stopPlayback();
+    setState(() => _isPlaying = false);
   }
 
   void _reset() {
+    _timer?.cancel();
     setState(() {
       _state = PracticeState.idle;
       _recordingSeconds = 0;
+      _recordedFile = null;
+      _isPlaying = false;
     });
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red.shade400,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
   }
 
   String _formatTime(int seconds) {
@@ -86,6 +170,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _audioService.dispose();
     super.dispose();
   }
 
@@ -270,9 +355,29 @@ class _PracticeScreenState extends State<PracticeScreen> {
           const SizedBox(height: 32),
           
           // Recording Button
-          RecordingButton(
-            isRecording: true,
-            onTap: _stopRecording,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Cancel Button
+              IconButton(
+                onPressed: _cancelRecording,
+                icon: const Icon(Icons.close_rounded),
+                iconSize: 32,
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.grey.shade200,
+                  padding: const EdgeInsets.all(16),
+                ),
+              ),
+              const SizedBox(width: 32),
+              // Stop Recording Button
+              RecordingButton(
+                isRecording: true,
+                onTap: _stopRecording,
+              ),
+              const SizedBox(width: 32),
+              // Placeholder for symmetry
+              const SizedBox(width: 64),
+            ],
           ),
           
           const SizedBox(height: 48),
@@ -340,6 +445,69 @@ class _PracticeScreenState extends State<PracticeScreen> {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
+          // Playback Controls
+          if (_recordedFile != null)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: _isPlaying ? _stopPlayback : _playRecording,
+                    icon: Icon(
+                      _isPlaying ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                      color: AppColors.primary,
+                    ),
+                    iconSize: 32,
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.primary.withOpacity(0.1),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Your Recording',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          _isPlaying ? 'Playing...' : 'Tap to listen',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    _formatTime(_recordingSeconds),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            )
+                .animate()
+                .fadeIn(duration: 500.ms),
+          
+          const SizedBox(height: 16),
+          
           FeedbackCard(feedback: _feedback)
               .animate()
               .fadeIn(duration: 500.ms)
