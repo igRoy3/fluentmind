@@ -25,13 +25,16 @@ class _PracticeScreenState extends State<PracticeScreen> {
   final AudioService _audioService = AudioService();
   File? _recordedFile;
   bool _isPlaying = false;
-  
+
   // Mock feedback data (will be replaced with API response later)
   final _feedback = PracticeFeedback(
-    transcription: "Hello, my name is John and I would like to order a coffee please.",
-    correctedText: "Hello, my name is John, and I would like to order a coffee, please.",
+    transcription:
+        "Hello, my name is John and I would like to order a coffee please.",
+    correctedText:
+        "Hello, my name is John, and I would like to order a coffee, please.",
     score: 85,
-    feedback: "Great job! Your pronunciation is clear and natural. Just remember to add commas for better pacing.",
+    feedback:
+        "Great job! Your pronunciation is clear and natural. Just remember to add commas for better pacing.",
     pronunciationTips: [
       "The 'th' sound in 'the' could be slightly more emphasized",
       "Good stress on 'coffee' - keep it up!",
@@ -51,48 +54,47 @@ class _PracticeScreenState extends State<PracticeScreen> {
   Future<void> _checkPermissions() async {
     final hasPermission = await _audioService.requestPermission();
     if (!hasPermission && mounted) {
-      _showErrorSnackBar('Microphone permission is required for speech practice');
+      _showErrorSnackBar(
+        'Microphone permission is required for speech practice',
+      );
     }
   }
 
   void _startRecording() async {
     try {
       await _audioService.startRecording();
-      
+
       setState(() {
         _state = PracticeState.recording;
         _recordingSeconds = 0;
       });
-      
+
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         setState(() {
           _recordingSeconds++;
         });
-        
+
         // Auto-stop after 60 seconds
         if (_recordingSeconds >= 60) {
           _stopRecording();
         }
       });
     } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-      });
       _showErrorSnackBar('Failed to start recording: $e');
     }
   }
 
   void _stopRecording() async {
     _timer?.cancel();
-    
+
     try {
       final file = await _audioService.stopRecording();
       _recordedFile = file;
-      
+
       setState(() {
         _state = PracticeState.processing;
       });
-      
+
       // TODO: Send to backend API for speech analysis
       // For now, simulate processing
       Future.delayed(const Duration(seconds: 2), () {
@@ -116,11 +118,11 @@ class _PracticeScreenState extends State<PracticeScreen> {
 
   void _playRecording() async {
     if (_recordedFile == null) return;
-    
+
     try {
       setState(() => _isPlaying = true);
       await _audioService.playRecording(_recordedFile!.path);
-      
+
       // Listen for playback completion
       _audioService.playerStateStream.listen((state) {
         if (state == PlayerState.completed || state == PlayerState.stopped) {
@@ -193,9 +195,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
             ),
         ],
       ),
-      body: SafeArea(
-        child: _buildBody(),
-      ),
+      body: SafeArea(child: _buildBody()),
     );
   }
 
@@ -218,7 +218,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
       child: Column(
         children: [
           const Spacer(),
-          
+
           // Prompt Card
           Container(
             padding: const EdgeInsets.all(24),
@@ -236,7 +236,10 @@ class _PracticeScreenState extends State<PracticeScreen> {
             child: Column(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -274,34 +277,26 @@ class _PracticeScreenState extends State<PracticeScreen> {
                 ),
               ],
             ),
-          )
-              .animate()
-              .fadeIn(duration: 500.ms)
-              .slideY(begin: 0.1),
-          
+          ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1),
+
           const Spacer(),
-          
+
           // Instructions
           Text(
             'Tap the microphone to start',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          )
-              .animate()
-              .fadeIn(delay: 300.ms, duration: 500.ms),
-          
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
+          ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
+
           const SizedBox(height: 32),
-          
+
           // Recording Button
-          RecordingButton(
-            isRecording: false,
-            onTap: _startRecording,
-          )
+          RecordingButton(isRecording: false, onTap: _startRecording)
               .animate()
               .fadeIn(delay: 500.ms, duration: 500.ms)
               .scale(begin: const Offset(0.8, 0.8)),
-          
+
           const SizedBox(height: 48),
         ],
       ),
@@ -314,46 +309,49 @@ class _PracticeScreenState extends State<PracticeScreen> {
       child: Column(
         children: [
           const Spacer(),
-          
+
           // Timer
           Text(
-            _formatTime(_recordingSeconds),
-            style: Theme.of(context).textTheme.displayLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.accent,
-            ),
-          )
+                _formatTime(_recordingSeconds),
+                style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.accent,
+                ),
+              )
               .animate(onPlay: (controller) => controller.repeat())
               .fadeIn()
               .then()
-              .shimmer(duration: 1500.ms, color: AppColors.accent.withOpacity(0.3)),
-          
+              .shimmer(
+                duration: 1500.ms,
+                color: AppColors.accent.withOpacity(0.3),
+              ),
+
           const SizedBox(height: 16),
-          
+
           Text(
             'Recording...',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(color: AppColors.textSecondary),
           ),
-          
+
           const SizedBox(height: 48),
-          
+
           // Waveform
           const WaveformVisualizer(),
-          
+
           const Spacer(),
-          
+
           // Stop instruction
           Text(
             'Tap to stop recording',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
           ),
-          
+
           const SizedBox(height: 32),
-          
+
           // Recording Button
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -370,16 +368,13 @@ class _PracticeScreenState extends State<PracticeScreen> {
               ),
               const SizedBox(width: 32),
               // Stop Recording Button
-              RecordingButton(
-                isRecording: true,
-                onTap: _stopRecording,
-              ),
+              RecordingButton(isRecording: true, onTap: _stopRecording),
               const SizedBox(width: 32),
               // Placeholder for symmetry
               const SizedBox(width: 64),
             ],
           ),
-          
+
           const SizedBox(height: 48),
         ],
       ),
@@ -392,19 +387,19 @@ class _PracticeScreenState extends State<PracticeScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Center(
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                color: AppColors.primary,
-              ),
-            ),
-          )
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    color: AppColors.primary,
+                  ),
+                ),
+              )
               .animate(onPlay: (controller) => controller.repeat())
               .scale(
                 begin: const Offset(1, 1),
@@ -417,23 +412,23 @@ class _PracticeScreenState extends State<PracticeScreen> {
                 end: const Offset(1, 1),
                 duration: 800.ms,
               ),
-          
+
           const SizedBox(height: 32),
-          
+
           Text(
             'Analyzing your speech...',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(color: AppColors.textSecondary),
           ),
-          
+
           const SizedBox(height: 8),
-          
+
           Text(
             'This may take a moment',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textHint,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textHint),
           ),
         ],
       ),
@@ -465,7 +460,9 @@ class _PracticeScreenState extends State<PracticeScreen> {
                   IconButton(
                     onPressed: _isPlaying ? _stopPlayback : _playRecording,
                     icon: Icon(
-                      _isPlaying ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                      _isPlaying
+                          ? Icons.stop_rounded
+                          : Icons.play_arrow_rounded,
                       color: AppColors.primary,
                     ),
                     iconSize: 32,
@@ -480,15 +477,13 @@ class _PracticeScreenState extends State<PracticeScreen> {
                       children: [
                         Text(
                           'Your Recording',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         Text(
                           _isPlaying ? 'Playing...' : 'Tap to listen',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppColors.textSecondary),
                         ),
                       ],
                     ),
@@ -502,19 +497,16 @@ class _PracticeScreenState extends State<PracticeScreen> {
                   ),
                 ],
               ),
-            )
-                .animate()
-                .fadeIn(duration: 500.ms),
-          
+            ).animate().fadeIn(duration: 500.ms),
+
           const SizedBox(height: 16),
-          
-          FeedbackCard(feedback: _feedback)
-              .animate()
-              .fadeIn(duration: 500.ms)
-              .slideY(begin: 0.1),
-          
+
+          FeedbackCard(
+            feedback: _feedback,
+          ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1),
+
           const SizedBox(height: 24),
-          
+
           // Action Buttons
           Row(
             children: [
@@ -540,21 +532,14 @@ class _PracticeScreenState extends State<PracticeScreen> {
                 ),
               ),
             ],
-          )
-              .animate()
-              .fadeIn(delay: 300.ms, duration: 500.ms),
+          ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
         ],
       ),
     );
   }
 }
 
-enum PracticeState {
-  idle,
-  recording,
-  processing,
-  feedback,
-}
+enum PracticeState { idle, recording, processing, feedback }
 
 class PracticeFeedback {
   final String transcription;
