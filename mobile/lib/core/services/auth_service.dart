@@ -62,12 +62,12 @@ class AuthService {
         email: email,
         password: password,
       );
-      
+
       // Update display name if provided
       if (displayName != null && credential.user != null) {
         await credential.user!.updateDisplayName(displayName);
       }
-      
+
       return AuthResult.success(credential.user);
     } on FirebaseAuthException catch (e) {
       return AuthResult.failure(_getErrorMessage(e.code));
@@ -138,11 +138,7 @@ class AuthResult {
   final User? user;
   final String? error;
 
-  AuthResult._({
-    required this.isSuccess,
-    this.user,
-    this.error,
-  });
+  AuthResult._({required this.isSuccess, this.user, this.error});
 
   factory AuthResult.success(User? user) {
     return AuthResult._(isSuccess: true, user: user);

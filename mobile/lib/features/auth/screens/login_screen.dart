@@ -27,7 +27,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _showError(String message) {
-    setState(() => _errorMessage = message);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -46,18 +45,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
-    
+
     final authService = ref.read(authServiceProvider);
     final result = await authService.signInWithEmail(
       email: _emailController.text.trim(),
       password: _passwordController.text,
     );
-    
+
     if (mounted) {
       setState(() => _isLoading = false);
-      
+
       if (result.isSuccess) {
         context.go('/home');
       } else {
@@ -88,20 +86,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
 
     setState(() => _isLoading = true);
-    
+
     final authService = ref.read(authServiceProvider);
     final result = await authService.sendPasswordResetEmail(email);
-    
+
     if (mounted) {
       setState(() => _isLoading = false);
-      
+
       if (result.isSuccess) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Password reset email sent!'),
             backgroundColor: Colors.green.shade400,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       } else {
@@ -125,36 +125,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 40),
-              
+
               // Header
               Center(
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withOpacity(0.3),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.psychology_rounded,
-                    size: 44,
-                    color: Colors.white,
-                  ),
-                ),
-              )
+                      child: const Icon(
+                        Icons.psychology_rounded,
+                        size: 44,
+                        color: Colors.white,
+                      ),
+                    ),
+                  )
                   .animate()
                   .fadeIn(duration: 500.ms)
                   .scale(begin: const Offset(0.8, 0.8)),
-              
+
               const SizedBox(height: 32),
-              
+
               // Welcome Text
               Center(
                 child: Text(
@@ -163,12 +163,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-              )
-                  .animate()
-                  .fadeIn(delay: 200.ms, duration: 500.ms),
-              
+              ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
+
               const SizedBox(height: 8),
-              
+
               Center(
                 child: Text(
                   'Sign in to continue your learning journey',
@@ -176,64 +174,56 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     color: AppColors.textSecondary,
                   ),
                 ),
-              )
-                  .animate()
-                  .fadeIn(delay: 300.ms, duration: 500.ms),
-              
+              ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
+
               const SizedBox(height: 48),
-              
+
               // Email Field
-              Text(
-                'Email',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
+              Text('Email', style: Theme.of(context).textTheme.labelLarge),
               const SizedBox(height: 8),
               TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  hintText: 'Enter your email',
-                  prefixIcon: Icon(Icons.email_outlined),
-                ),
-              )
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      hintText: 'Enter your email',
+                      prefixIcon: Icon(Icons.email_outlined),
+                    ),
+                  )
                   .animate()
                   .fadeIn(delay: 400.ms, duration: 500.ms)
                   .slideX(begin: -0.1),
-              
+
               const SizedBox(height: 24),
-              
+
               // Password Field
-              Text(
-                'Password',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
+              Text('Password', style: Theme.of(context).textTheme.labelLarge),
               const SizedBox(height: 8),
               TextField(
-                controller: _passwordController,
-                obscureText: !_isPasswordVisible,
-                decoration: InputDecoration(
-                  hintText: 'Enter your password',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _isPasswordVisible
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
+                    controller: _passwordController,
+                    obscureText: !_isPasswordVisible,
+                    decoration: InputDecoration(
+                      hintText: 'Enter your password',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _isPasswordVisible
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isPasswordVisible = !_isPasswordVisible;
+                          });
+                        },
+                      ),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        _isPasswordVisible = !_isPasswordVisible;
-                      });
-                    },
-                  ),
-                ),
-              )
+                  )
                   .animate()
                   .fadeIn(delay: 500.ms, duration: 500.ms)
                   .slideX(begin: -0.1),
-              
+
               const SizedBox(height: 16),
-              
+
               // Forgot Password
               Align(
                 alignment: Alignment.centerRight,
@@ -242,9 +232,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: const Text('Forgot Password?'),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Sign In Button
               SizedBox(
                 width: double.infinity,
@@ -262,12 +252,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         )
                       : const Text('Sign In'),
                 ),
-              )
-                  .animate()
-                  .fadeIn(delay: 600.ms, duration: 500.ms),
-              
+              ).animate().fadeIn(delay: 600.ms, duration: 500.ms),
+
               const SizedBox(height: 32),
-              
+
               // Divider
               Row(
                 children: [
@@ -284,9 +272,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const Expanded(child: Divider()),
                 ],
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // Social Sign In Buttons
               Row(
                 children: [
@@ -306,12 +294,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                 ],
-              )
-                  .animate()
-                  .fadeIn(delay: 700.ms, duration: 500.ms),
-              
+              ).animate().fadeIn(delay: 700.ms, duration: 500.ms),
+
               const SizedBox(height: 32),
-              
+
               // Sign Up Link
               Center(
                 child: Row(
@@ -328,16 +314,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ],
                 ),
               ),
-              
+
               // Guest Mode
               Center(
                 child: TextButton(
                   onPressed: _continueAsGuest,
                   child: Text(
                     'Continue as Guest',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                    ),
+                    style: TextStyle(color: AppColors.textSecondary),
                   ),
                 ),
               ),

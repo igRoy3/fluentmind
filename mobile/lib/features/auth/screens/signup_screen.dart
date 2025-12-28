@@ -82,17 +82,17 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     }
 
     setState(() => _isLoading = true);
-    
+
     final authService = ref.read(authServiceProvider);
     final result = await authService.signUpWithEmail(
       email: _emailController.text.trim(),
       password: _passwordController.text,
       displayName: _nameController.text.trim(),
     );
-    
+
     if (mounted) {
       setState(() => _isLoading = false);
-      
+
       if (result.isSuccess) {
         _showSuccess('Account created successfully!');
         context.go('/home');
@@ -126,95 +126,82 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 style: Theme.of(context).textTheme.displayMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
-              )
-                  .animate()
-                  .fadeIn(duration: 500.ms),
-              
+              ).animate().fadeIn(duration: 500.ms),
+
               const SizedBox(height: 8),
-              
+
               Text(
                 'Start your language learning journey today',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              )
-                  .animate()
-                  .fadeIn(delay: 100.ms, duration: 500.ms),
-              
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
+              ).animate().fadeIn(delay: 100.ms, duration: 500.ms),
+
               const SizedBox(height: 40),
-              
+
               // Name Field
-              Text(
-                'Full Name',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
+              Text('Full Name', style: Theme.of(context).textTheme.labelLarge),
               const SizedBox(height: 8),
               TextField(
-                controller: _nameController,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  hintText: 'Enter your name',
-                  prefixIcon: Icon(Icons.person_outline),
-                ),
-              )
+                    controller: _nameController,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      hintText: 'Enter your name',
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
+                  )
                   .animate()
                   .fadeIn(delay: 200.ms, duration: 500.ms)
                   .slideX(begin: -0.1),
-              
+
               const SizedBox(height: 20),
-              
+
               // Email Field
-              Text(
-                'Email',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
+              Text('Email', style: Theme.of(context).textTheme.labelLarge),
               const SizedBox(height: 8),
               TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  hintText: 'Enter your email',
-                  prefixIcon: Icon(Icons.email_outlined),
-                ),
-              )
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      hintText: 'Enter your email',
+                      prefixIcon: Icon(Icons.email_outlined),
+                    ),
+                  )
                   .animate()
                   .fadeIn(delay: 300.ms, duration: 500.ms)
                   .slideX(begin: -0.1),
-              
+
               const SizedBox(height: 20),
-              
+
               // Password Field
-              Text(
-                'Password',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
+              Text('Password', style: Theme.of(context).textTheme.labelLarge),
               const SizedBox(height: 8),
               TextField(
-                controller: _passwordController,
-                obscureText: !_isPasswordVisible,
-                decoration: InputDecoration(
-                  hintText: 'Create a password',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _isPasswordVisible
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
+                    controller: _passwordController,
+                    obscureText: !_isPasswordVisible,
+                    decoration: InputDecoration(
+                      hintText: 'Create a password',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _isPasswordVisible
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isPasswordVisible = !_isPasswordVisible;
+                          });
+                        },
+                      ),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        _isPasswordVisible = !_isPasswordVisible;
-                      });
-                    },
-                  ),
-                ),
-              )
+                  )
                   .animate()
                   .fadeIn(delay: 400.ms, duration: 500.ms)
                   .slideX(begin: -0.1),
-              
+
               const SizedBox(height: 20),
-              
+
               // Confirm Password Field
               Text(
                 'Confirm Password',
@@ -222,31 +209,32 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               ),
               const SizedBox(height: 8),
               TextField(
-                controller: _confirmPasswordController,
-                obscureText: !_isConfirmPasswordVisible,
-                decoration: InputDecoration(
-                  hintText: 'Confirm your password',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _isConfirmPasswordVisible
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
+                    controller: _confirmPasswordController,
+                    obscureText: !_isConfirmPasswordVisible,
+                    decoration: InputDecoration(
+                      hintText: 'Confirm your password',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _isConfirmPasswordVisible
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isConfirmPasswordVisible =
+                                !_isConfirmPasswordVisible;
+                          });
+                        },
+                      ),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
-                      });
-                    },
-                  ),
-                ),
-              )
+                  )
                   .animate()
                   .fadeIn(delay: 500.ms, duration: 500.ms)
                   .slideX(begin: -0.1),
-              
+
               const SizedBox(height: 24),
-              
+
               // Terms Checkbox
               Row(
                 children: [
@@ -290,12 +278,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     ),
                   ),
                 ],
-              )
-                  .animate()
-                  .fadeIn(delay: 600.ms, duration: 500.ms),
-              
+              ).animate().fadeIn(delay: 600.ms, duration: 500.ms),
+
               const SizedBox(height: 32),
-              
+
               // Sign Up Button
               SizedBox(
                 width: double.infinity,
@@ -313,12 +299,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         )
                       : const Text('Create Account'),
                 ),
-              )
-                  .animate()
-                  .fadeIn(delay: 700.ms, duration: 500.ms),
-              
+              ).animate().fadeIn(delay: 700.ms, duration: 500.ms),
+
               const SizedBox(height: 24),
-              
+
               // Sign In Link
               Center(
                 child: Row(

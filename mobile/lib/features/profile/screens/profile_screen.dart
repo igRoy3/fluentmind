@@ -13,7 +13,7 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
     final user = authState.value;
-    
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -22,7 +22,7 @@ class ProfileScreen extends ConsumerWidget {
           child: Column(
             children: [
               const SizedBox(height: 20),
-              
+
               // Profile Header
               Container(
                 padding: const EdgeInsets.all(24),
@@ -46,10 +46,7 @@ class ProfileScreen extends ConsumerWidget {
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
                         shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white,
-                          width: 3,
-                        ),
+                        border: Border.all(color: Colors.white, width: 3),
                       ),
                       child: user?.photoURL != null
                           ? ClipOval(
@@ -65,17 +62,18 @@ class ProfileScreen extends ConsumerWidget {
                             ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Name
                     Text(
                       user?.displayName ?? 'Guest User',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     const SizedBox(height: 4),
-                    
+
                     // Email
                     Text(
                       user?.email ?? 'Not signed in',
@@ -84,7 +82,7 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    
+
                     // Member Since
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -105,27 +103,25 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            user != null ? 'Member since Dec 2024' : 'Sign in to save progress',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.white,
-                            ),
+                            user != null
+                                ? 'Member since Dec 2024'
+                                : 'Sign in to save progress',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: Colors.white),
                           ),
                         ],
                       ),
                     ),
                   ],
                 ),
-              )
-                  .animate()
-                  .fadeIn(duration: 500.ms)
-                  .slideY(begin: 0.1),
-              
+              ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1),
+
               const SizedBox(height: 32),
-              
+
               // Settings Section
               _SectionTitle(title: 'Settings'),
               const SizedBox(height: 12),
-              
+
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -169,16 +165,14 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-              )
-                  .animate()
-                  .fadeIn(delay: 200.ms, duration: 500.ms),
-              
+              ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
+
               const SizedBox(height: 32),
-              
+
               // Support Section
               _SectionTitle(title: 'Support'),
               const SizedBox(height: 12),
-              
+
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -218,12 +212,10 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-              )
-                  .animate()
-                  .fadeIn(delay: 300.ms, duration: 500.ms),
-              
+              ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
+
               const SizedBox(height: 32),
-              
+
               // Logout Button
               SizedBox(
                 width: double.infinity,
@@ -235,7 +227,10 @@ class ProfileScreen extends ConsumerWidget {
                       context.go('/login');
                     }
                   },
-                  icon: const Icon(Icons.logout_rounded, color: AppColors.error),
+                  icon: const Icon(
+                    Icons.logout_rounded,
+                    color: AppColors.error,
+                  ),
                   label: const Text(
                     'Log Out',
                     style: TextStyle(color: AppColors.error),
@@ -248,20 +243,18 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-              )
-                  .animate()
-                  .fadeIn(delay: 400.ms, duration: 500.ms),
-              
+              ).animate().fadeIn(delay: 400.ms, duration: 500.ms),
+
               const SizedBox(height: 20),
-              
+
               // App Version
               Text(
                 'FluentMind v1.0.0',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textHint,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textHint),
               ),
-              
+
               const SizedBox(height: 100),
             ],
           ),
@@ -319,16 +312,16 @@ class _SettingsTile extends StatelessWidget {
       ),
       title: Text(
         title,
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-          fontWeight: FontWeight.w500,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
       ),
       subtitle: subtitle != null
           ? Text(
               subtitle!,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             )
           : null,
       trailing: const Icon(
