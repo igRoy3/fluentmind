@@ -65,13 +65,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _signInWithGoogle() async {
-    // TODO: Implement Google Sign In
-    _showError('Google Sign In coming soon!');
+    setState(() => _isLoading = true);
+    final authService = ref.read(authServiceProvider);
+    final result = await authService.signInWithGoogle();
+    if (mounted) {
+      setState(() => _isLoading = false);
+      if (result.isSuccess) {
+        context.go('/home');
+      } else {
+        _showError(result.error ?? 'Google sign-in failed');
+      }
+    }
   }
 
   void _signInWithApple() async {
-    // TODO: Implement Apple Sign In
-    _showError('Apple Sign In coming soon!');
+    setState(() => _isLoading = true);
+    final authService = ref.read(authServiceProvider);
+    final result = await authService.signInWithApple();
+    if (mounted) {
+      setState(() => _isLoading = false);
+      if (result.isSuccess) {
+        context.go('/home');
+      } else {
+        _showError(result.error ?? 'Apple sign-in failed');
+      }
+    }
   }
 
   void _continueAsGuest() {
