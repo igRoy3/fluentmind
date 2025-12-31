@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../core/services/auth_service.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -13,9 +14,11 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
     final user = authState.value;
+    ref.watch(themeModeProvider); // Watch to trigger rebuilds on theme change
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -119,16 +122,16 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: 32),
 
               // Settings Section
-              _SectionTitle(title: 'Settings'),
+              _SectionTitle(title: 'Settings', isDark: isDark),
               const SizedBox(height: 12),
 
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? AppColors.cardDark : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -140,27 +143,42 @@ class ProfileScreen extends ConsumerWidget {
                       icon: Icons.translate_rounded,
                       title: 'Target Language',
                       subtitle: 'English (US)',
+                      isDark: isDark,
                       onTap: () {},
                     ),
-                    const Divider(height: 1, indent: 60),
+                    Divider(
+                      height: 1,
+                      indent: 60,
+                      color: isDark ? AppColors.dividerDark : AppColors.divider,
+                    ),
                     _SettingsTile(
                       icon: Icons.notifications_rounded,
                       title: 'Notifications',
                       subtitle: 'Enabled',
+                      isDark: isDark,
                       onTap: () {},
                     ),
-                    const Divider(height: 1, indent: 60),
-                    _SettingsTile(
-                      icon: Icons.dark_mode_rounded,
-                      title: 'Dark Mode',
-                      subtitle: 'Off',
-                      onTap: () {},
+                    Divider(
+                      height: 1,
+                      indent: 60,
+                      color: isDark ? AppColors.dividerDark : AppColors.divider,
                     ),
-                    const Divider(height: 1, indent: 60),
+                    _ThemeToggleTile(
+                      isDark: isDark,
+                      onToggle: () {
+                        ref.read(themeModeProvider.notifier).toggleTheme();
+                      },
+                    ),
+                    Divider(
+                      height: 1,
+                      indent: 60,
+                      color: isDark ? AppColors.dividerDark : AppColors.divider,
+                    ),
                     _SettingsTile(
                       icon: Icons.volume_up_rounded,
                       title: 'Sound Effects',
                       subtitle: 'On',
+                      isDark: isDark,
                       onTap: () {},
                     ),
                   ],
@@ -170,16 +188,16 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: 32),
 
               // Support Section
-              _SectionTitle(title: 'Support'),
+              _SectionTitle(title: 'Support', isDark: isDark),
               const SizedBox(height: 12),
 
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? AppColors.cardDark : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -190,24 +208,40 @@ class ProfileScreen extends ConsumerWidget {
                     _SettingsTile(
                       icon: Icons.help_outline_rounded,
                       title: 'Help Center',
+                      isDark: isDark,
                       onTap: () {},
                     ),
-                    const Divider(height: 1, indent: 60),
+                    Divider(
+                      height: 1,
+                      indent: 60,
+                      color: isDark ? AppColors.dividerDark : AppColors.divider,
+                    ),
                     _SettingsTile(
                       icon: Icons.feedback_outlined,
                       title: 'Send Feedback',
+                      isDark: isDark,
                       onTap: () {},
                     ),
-                    const Divider(height: 1, indent: 60),
+                    Divider(
+                      height: 1,
+                      indent: 60,
+                      color: isDark ? AppColors.dividerDark : AppColors.divider,
+                    ),
                     _SettingsTile(
                       icon: Icons.privacy_tip_outlined,
                       title: 'Privacy Policy',
+                      isDark: isDark,
                       onTap: () {},
                     ),
-                    const Divider(height: 1, indent: 60),
+                    Divider(
+                      height: 1,
+                      indent: 60,
+                      color: isDark ? AppColors.dividerDark : AppColors.divider,
+                    ),
                     _SettingsTile(
                       icon: Icons.description_outlined,
                       title: 'Terms of Service',
+                      isDark: isDark,
                       onTap: () {},
                     ),
                   ],
@@ -250,9 +284,9 @@ class ProfileScreen extends ConsumerWidget {
               // App Version
               Text(
                 'FluentMind v1.0.0',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.textHint),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: isDark ? AppColors.textHintDark : AppColors.textHint,
+                ),
               ),
 
               const SizedBox(height: 100),
@@ -266,8 +300,9 @@ class ProfileScreen extends ConsumerWidget {
 
 class _SectionTitle extends StatelessWidget {
   final String title;
+  final bool isDark;
 
-  const _SectionTitle({required this.title});
+  const _SectionTitle({required this.title, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -277,7 +312,7 @@ class _SectionTitle extends StatelessWidget {
         title,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w600,
-          color: AppColors.textSecondary,
+          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
         ),
       ),
     );
@@ -289,12 +324,14 @@ class _SettingsTile extends StatelessWidget {
   final String title;
   final String? subtitle;
   final VoidCallback onTap;
+  final bool isDark;
 
   const _SettingsTile({
     required this.icon,
     required this.title,
     this.subtitle,
     required this.onTap,
+    required this.isDark,
   });
 
   @override
@@ -312,21 +349,69 @@ class _SettingsTile extends StatelessWidget {
       ),
       title: Text(
         title,
-        style: Theme.of(
-          context,
-        ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+          fontWeight: FontWeight.w500,
+          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+        ),
       ),
       subtitle: subtitle != null
           ? Text(
               subtitle!,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
+              ),
             )
           : null,
-      trailing: const Icon(
+      trailing: Icon(
         Icons.chevron_right_rounded,
-        color: AppColors.textHint,
+        color: isDark ? AppColors.textHintDark : AppColors.textHint,
+      ),
+    );
+  }
+}
+
+class _ThemeToggleTile extends StatelessWidget {
+  final bool isDark;
+  final VoidCallback onToggle;
+
+  const _ThemeToggleTile({required this.isDark, required this.onToggle});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      onTap: onToggle,
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(
+          isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+          color: AppColors.primary,
+          size: 20,
+        ),
+      ),
+      title: Text(
+        'Dark Mode',
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+          fontWeight: FontWeight.w500,
+          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+        ),
+      ),
+      subtitle: Text(
+        isDark ? 'On' : 'Off',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+        ),
+      ),
+      trailing: Switch.adaptive(
+        value: isDark,
+        onChanged: (_) => onToggle(),
+        activeColor: AppColors.primary,
       ),
     );
   }

@@ -19,7 +19,7 @@ class _MainShellState extends State<MainShell> {
     setState(() {
       _currentIndex = index;
     });
-    
+
     switch (index) {
       case 0:
         context.go('/home');
@@ -35,6 +35,8 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     // Update current index based on current route
     final location = GoRouterState.of(context).uri.toString();
     if (location.startsWith('/home')) {
@@ -49,10 +51,10 @@ class _MainShellState extends State<MainShell> {
       body: widget.child,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? AppColors.surfaceDark : Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),
@@ -68,18 +70,21 @@ class _MainShellState extends State<MainShell> {
                   icon: Icons.home_rounded,
                   label: 'Home',
                   isSelected: _currentIndex == 0,
+                  isDark: isDark,
                   onTap: () => _onItemTapped(0),
                 ),
                 _NavItem(
                   icon: Icons.bar_chart_rounded,
                   label: 'Progress',
                   isSelected: _currentIndex == 1,
+                  isDark: isDark,
                   onTap: () => _onItemTapped(1),
                 ),
                 _NavItem(
                   icon: Icons.person_rounded,
                   label: 'Profile',
                   isSelected: _currentIndex == 2,
+                  isDark: isDark,
                   onTap: () => _onItemTapped(2),
                 ),
               ],
@@ -95,12 +100,14 @@ class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool isSelected;
+  final bool isDark;
   final VoidCallback onTap;
 
   const _NavItem({
     required this.icon,
     required this.label,
     required this.isSelected,
+    required this.isDark,
     required this.onTap,
   });
 
@@ -113,14 +120,18 @@ class _NavItem extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withOpacity(0.1) : Colors.transparent,
+          color: isSelected
+              ? AppColors.primary.withOpacity(0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
             Icon(
               icon,
-              color: isSelected ? AppColors.primary : AppColors.textHint,
+              color: isSelected
+                  ? AppColors.primary
+                  : (isDark ? AppColors.textHintDark : AppColors.textHint),
               size: 24,
             ),
             if (isSelected) ...[

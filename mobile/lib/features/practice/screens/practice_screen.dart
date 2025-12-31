@@ -2,29 +2,33 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:audioplayers/audioplayers.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/audio_service.dart';
+import '../../../core/providers/app_providers.dart';
 import '../widgets/recording_button.dart';
 import '../widgets/waveform_visualizer.dart';
 import '../widgets/feedback_card.dart';
 
-class PracticeScreen extends StatefulWidget {
+class PracticeScreen extends ConsumerStatefulWidget {
   const PracticeScreen({super.key});
 
   @override
-  State<PracticeScreen> createState() => _PracticeScreenState();
+  ConsumerState<PracticeScreen> createState() => _PracticeScreenState();
 }
 
-class _PracticeScreenState extends State<PracticeScreen> {
+class _PracticeScreenState extends ConsumerState<PracticeScreen> {
   PracticeState _state = PracticeState.idle;
   int _recordingSeconds = 0;
   Timer? _timer;
   final AudioService _audioService = AudioService();
   File? _recordedFile;
   bool _isPlaying = false;
+  String? _transcription;
+  FeedbackResult? _feedbackResult;
 
   // Mock feedback data (will be replaced with API response later)
   final _feedback = PracticeFeedback(
@@ -95,17 +99,31 @@ class _PracticeScreenState extends State<PracticeScreen> {
         _state = PracticeState.processing;
       });
 
-      // TODO: Send to backend API for speech analysis
-      // For now, simulate processing
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
+      // Use Riverpod provider to send to backend API
+      if (file != null) {
+        print('🚀 Submitting audio file to API via provider...');
+        await ref.read(practiceProvider.notifier).stopRecording();
+
+        final practiceState = ref.read(practiceProvider);
+
+        if (practiceState.status == PracticeStatus.completed) {
           setState(() {
+            _transcription = practiceState.transcription;
+            _feedbackResult = practiceState.feedback;
             _state = PracticeState.feedback;
           });
+          print('✅ Feedback received successfully');
+        } else if (practiceState.status == PracticeStatus.error) {
+          _showErrorSnackBar(practiceState.error ?? 'Unknown error occurred');
+          print('❌ Error: ${practiceState.error}');
+          _reset();
         }
-      });
+      } else {
+        throw Exception('No recording file created');
+      }
     } catch (e) {
-      _showErrorSnackBar('Failed to stop recording: $e');
+      print('❌ Exception in _stopRecording: $e');
+      _showErrorSnackBar('Failed to process recording: $e');
       _reset();
     }
   }
@@ -144,11 +162,14 @@ class _PracticeScreenState extends State<PracticeScreen> {
 
   void _reset() {
     _timer?.cancel();
+    ref.read(practiceProvider.notifier).reset();
     setState(() {
       _state = PracticeState.idle;
       _recordingSeconds = 0;
       _recordedFile = null;
       _isPlaying = false;
+      _transcription = null;
+      _feedbackResult = null;
     });
   }
 
@@ -501,9 +522,26 @@ class _PracticeScreenState extends State<PracticeScreen> {
 
           const SizedBox(height: 16),
 
-          FeedbackCard(
-            feedback: _feedback,
-          ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1),
+          // Show feedback from API or fallback to mock
+          if (_feedbackResult != null)
+            FeedbackCard(
+              feedback: PracticeFeedback(
+                transcription: _transcription ?? _feedbackResult!.originalText,
+                correctedText: _feedbackResult!.correctedText,
+                score: _feedbackResult!.overallScore,
+                feedback:
+                    'Overall Score: ${_feedbackResult!.overallScore}/100\n'
+                    'Pronunciation: ${_feedbackResult!.pronunciationScore}/100\n'
+                    'Grammar: ${_feedbackResult!.grammarScore}/100\n'
+                    'Fluency: ${_feedbackResult!.fluencyScore}/100',
+                pronunciationTips: _feedbackResult!.pronunciationTips,
+                grammarNotes: _feedbackResult!.grammarCorrections,
+              ),
+            ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1)
+          else
+            FeedbackCard(
+              feedback: _feedback,
+            ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1),
 
           const SizedBox(height: 24),
 

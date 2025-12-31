@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/providers/app_providers.dart';
 
-class StreakCard extends StatelessWidget {
+class StreakCard extends ConsumerWidget {
   const StreakCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statsState = ref.watch(statsProvider);
+    final currentStreak = statsState.stats?.currentStreak ?? 0;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -37,21 +42,27 @@ class StreakCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          
+
           // Streak Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '7 Day Streak! 🔥',
+                  currentStreak == 0
+                      ? 'Start Your Streak! 🔥'
+                      : currentStreak == 1
+                      ? '1 Day Streak! 🔥'
+                      : '$currentStreak Day Streak! 🔥',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "You're on fire! Keep practicing daily.",
+                  currentStreak == 0
+                      ? 'Practice today to start your streak!'
+                      : "You're on fire! Keep practicing daily.",
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -59,22 +70,22 @@ class StreakCard extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Days Display
           Column(
             children: [
               Text(
-                '7',
+                '$currentStreak',
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppColors.primary,
                 ),
               ),
               Text(
-                'days',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+                currentStreak == 1 ? 'day' : 'days',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
               ),
             ],
           ),

@@ -1,16 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/providers/app_providers.dart';
 
-class ProgressScreen extends StatelessWidget {
+class ProgressScreen extends ConsumerStatefulWidget {
   const ProgressScreen({super.key});
 
   @override
+  ConsumerState<ProgressScreen> createState() => _ProgressScreenState();
+}
+
+class _ProgressScreenState extends ConsumerState<ProgressScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Load stats when progress screen is displayed
+    Future.microtask(() => ref.read(statsProvider.notifier).loadStats());
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final statsState = ref.watch(statsProvider);
+    final stats = statsState.stats;
+
+    if (statsState.isLoading && stats == null) {
+      return Scaffold(
+        backgroundColor: isDark
+            ? AppColors.backgroundDark
+            : AppColors.background,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -22,13 +49,14 @@ class ProgressScreen extends StatelessWidget {
                   'Your Progress',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary,
                   ),
-                )
-                    .animate()
-                    .fadeIn(duration: 500.ms),
+                ).animate().fadeIn(duration: 500.ms),
               ),
             ),
-            
+
             // Stats Overview Cards
             SliverToBoxAdapter(
               child: Padding(
@@ -39,8 +67,9 @@ class ProgressScreen extends StatelessWidget {
                       child: _StatCard(
                         icon: Icons.local_fire_department_rounded,
                         iconColor: AppColors.accentYellow,
-                        value: '7',
+                        value: '${stats?.currentStreak ?? 0}',
                         label: 'Day Streak',
+                        isDark: isDark,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -48,8 +77,9 @@ class ProgressScreen extends StatelessWidget {
                       child: _StatCard(
                         icon: Icons.mic_rounded,
                         iconColor: AppColors.primary,
-                        value: '24',
+                        value: '${stats?.totalSessions ?? 0}',
                         label: 'Sessions',
+                        isDark: isDark,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -57,122 +87,139 @@ class ProgressScreen extends StatelessWidget {
                       child: _StatCard(
                         icon: Icons.star_rounded,
                         iconColor: AppColors.accentGreen,
-                        value: '85',
+                        value: '${stats?.avgPronunciationScore?.round() ?? 0}',
                         label: 'Avg Score',
+                        isDark: isDark,
                       ),
                     ),
                   ],
-                )
-                    .animate()
-                    .fadeIn(delay: 200.ms, duration: 500.ms),
+                ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
               ),
             ),
-            
+
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
-            
+
             // Weekly Progress Chart
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 20,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Weekly Activity',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        height: 200,
-                        child: _WeeklyChart(),
-                      ),
-                    ],
-                  ),
-                )
-                    .animate()
-                    .fadeIn(delay: 300.ms, duration: 500.ms)
-                    .slideY(begin: 0.1),
+                child:
+                    Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.cardDark : Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(
+                                  isDark ? 0.3 : 0.05,
+                                ),
+                                blurRadius: 20,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Weekly Activity',
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark
+                                          ? AppColors.textPrimaryDark
+                                          : AppColors.textPrimary,
+                                    ),
+                              ),
+                              const SizedBox(height: 24),
+                              SizedBox(
+                                height: 200,
+                                child: _WeeklyChart(isDark: isDark),
+                              ),
+                            ],
+                          ),
+                        )
+                        .animate()
+                        .fadeIn(delay: 300.ms, duration: 500.ms)
+                        .slideY(begin: 0.1),
               ),
             ),
-            
+
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
-            
+
             // Score Distribution
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 20,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Score Breakdown',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      _ScoreBreakdownItem(
-                        label: 'Pronunciation',
-                        score: 88,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(height: 16),
-                      _ScoreBreakdownItem(
-                        label: 'Grammar',
-                        score: 82,
-                        color: AppColors.secondary,
-                      ),
-                      const SizedBox(height: 16),
-                      _ScoreBreakdownItem(
-                        label: 'Fluency',
-                        score: 79,
-                        color: AppColors.accent,
-                      ),
-                      const SizedBox(height: 16),
-                      _ScoreBreakdownItem(
-                        label: 'Vocabulary',
-                        score: 91,
-                        color: AppColors.accentGreen,
-                      ),
-                    ],
-                  ),
-                )
-                    .animate()
-                    .fadeIn(delay: 400.ms, duration: 500.ms)
-                    .slideY(begin: 0.1),
+                child:
+                    Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.cardDark : Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(
+                                  isDark ? 0.3 : 0.05,
+                                ),
+                                blurRadius: 20,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Score Breakdown',
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark
+                                          ? AppColors.textPrimaryDark
+                                          : AppColors.textPrimary,
+                                    ),
+                              ),
+                              const SizedBox(height: 20),
+                              _ScoreBreakdownItem(
+                                label: 'Pronunciation',
+                                score: 88,
+                                color: AppColors.primary,
+                                isDark: isDark,
+                              ),
+                              const SizedBox(height: 16),
+                              _ScoreBreakdownItem(
+                                label: 'Grammar',
+                                score: 82,
+                                color: AppColors.secondary,
+                                isDark: isDark,
+                              ),
+                              const SizedBox(height: 16),
+                              _ScoreBreakdownItem(
+                                label: 'Fluency',
+                                score: 79,
+                                color: AppColors.accent,
+                                isDark: isDark,
+                              ),
+                              const SizedBox(height: 16),
+                              _ScoreBreakdownItem(
+                                label: 'Vocabulary',
+                                score: 91,
+                                color: AppColors.accentGreen,
+                                isDark: isDark,
+                              ),
+                            ],
+                          ),
+                        )
+                        .animate()
+                        .fadeIn(delay: 400.ms, duration: 500.ms)
+                        .slideY(begin: 0.1),
               ),
             ),
-            
+
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
-            
+
             // Achievements
             SliverToBoxAdapter(
               child: Padding(
@@ -181,13 +228,16 @@ class ProgressScreen extends StatelessWidget {
                   'Achievements',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary,
                   ),
                 ),
               ),
             ),
-            
+
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
-            
+
             SliverToBoxAdapter(
               child: SizedBox(
                 height: 120,
@@ -199,29 +249,31 @@ class ProgressScreen extends StatelessWidget {
                       icon: Icons.local_fire_department_rounded,
                       title: '7 Day Streak',
                       isUnlocked: true,
+                      isDark: isDark,
                     ),
                     _AchievementCard(
                       icon: Icons.emoji_events_rounded,
                       title: 'First 90+',
                       isUnlocked: true,
+                      isDark: isDark,
                     ),
                     _AchievementCard(
                       icon: Icons.bolt_rounded,
                       title: '10 Sessions',
                       isUnlocked: true,
+                      isDark: isDark,
                     ),
                     _AchievementCard(
                       icon: Icons.diamond_rounded,
                       title: 'Perfect Score',
                       isUnlocked: false,
+                      isDark: isDark,
                     ),
                   ],
-                )
-                    .animate()
-                    .fadeIn(delay: 500.ms, duration: 500.ms),
+                ).animate().fadeIn(delay: 500.ms, duration: 500.ms),
               ),
             ),
-            
+
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
         ),
@@ -235,12 +287,14 @@ class _StatCard extends StatelessWidget {
   final Color iconColor;
   final String value;
   final String label;
+  final bool isDark;
 
   const _StatCard({
     required this.icon,
     required this.iconColor,
     required this.value,
     required this.label,
+    required this.isDark,
   });
 
   @override
@@ -248,11 +302,11 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -274,13 +328,16 @@ class _StatCard extends StatelessWidget {
             value,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
+              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
             ),
           ),
         ],
@@ -290,6 +347,10 @@ class _StatCard extends StatelessWidget {
 }
 
 class _WeeklyChart extends StatelessWidget {
+  final bool isDark;
+
+  const _WeeklyChart({required this.isDark});
+
   @override
   Widget build(BuildContext context) {
     return BarChart(
@@ -309,7 +370,9 @@ class _WeeklyChart extends StatelessWidget {
                   child: Text(
                     days[value.toInt()],
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondary,
                       fontSize: 12,
                     ),
                   ),
@@ -356,11 +419,13 @@ class _ScoreBreakdownItem extends StatelessWidget {
   final String label;
   final int score;
   final Color color;
+  final bool isDark;
 
   const _ScoreBreakdownItem({
     required this.label,
     required this.score,
     required this.color,
+    required this.isDark,
   });
 
   @override
@@ -373,7 +438,11 @@ class _ScoreBreakdownItem extends StatelessWidget {
           children: [
             Text(
               label,
-              style: Theme.of(context).textTheme.bodyLarge,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
+              ),
             ),
             Text(
               '$score%',
@@ -403,11 +472,13 @@ class _AchievementCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final bool isUnlocked;
+  final bool isDark;
 
   const _AchievementCard({
     required this.icon,
     required this.title,
     required this.isUnlocked,
+    required this.isDark,
   });
 
   @override
@@ -417,12 +488,16 @@ class _AchievementCard extends StatelessWidget {
       margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isUnlocked ? Colors.white : AppColors.surfaceVariant,
+        color: isUnlocked
+            ? (isDark ? AppColors.cardDark : Colors.white)
+            : (isDark
+                  ? AppColors.surfaceVariantDark
+                  : AppColors.surfaceVariant),
         borderRadius: BorderRadius.circular(20),
         boxShadow: isUnlocked
             ? [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -438,12 +513,15 @@ class _AchievementCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: isUnlocked
                   ? AppColors.accentYellow.withOpacity(0.15)
-                  : AppColors.disabled.withOpacity(0.5),
+                  : (isDark ? AppColors.disabledDark : AppColors.disabled)
+                        .withOpacity(0.5),
               shape: BoxShape.circle,
             ),
             child: Icon(
               icon,
-              color: isUnlocked ? AppColors.accentYellow : AppColors.textHint,
+              color: isUnlocked
+                  ? AppColors.accentYellow
+                  : (isDark ? AppColors.textHintDark : AppColors.textHint),
               size: 24,
             ),
           ),
@@ -452,7 +530,9 @@ class _AchievementCard extends StatelessWidget {
             title,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               fontWeight: FontWeight.w500,
-              color: isUnlocked ? AppColors.textPrimary : AppColors.textHint,
+              color: isUnlocked
+                  ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimary)
+                  : (isDark ? AppColors.textHintDark : AppColors.textHint),
             ),
             textAlign: TextAlign.center,
             maxLines: 2,

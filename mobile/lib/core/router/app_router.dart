@@ -10,6 +10,9 @@ import '../../features/practice/screens/practice_screen.dart';
 import '../../features/progress/screens/progress_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/home/screens/main_shell.dart';
+import '../../features/vocabulary/screens/vocabulary_screen.dart';
+import '../../features/games/screens/games_screen.dart';
+import '../../features/games/screens/game_play_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -72,6 +75,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/practice',
         name: 'practice',
         builder: (context, state) => const PracticeScreen(),
+      ),
+
+      // Vocabulary Screen
+      GoRoute(
+        path: '/vocabulary',
+        name: 'vocabulary',
+        builder: (context, state) => const VocabularyScreen(),
+      ),
+
+      // Games Screen
+      GoRoute(
+        path: '/games',
+        name: 'games',
+        builder: (context, state) => const GamesScreen(),
+      ),
+
+      // Game Play Screen
+      GoRoute(
+        path: '/games/:gameId',
+        name: 'game_play',
+        builder: (context, state) =>
+            GamePlayScreen(gameId: state.pathParameters['gameId']!),
       ),
     ],
   );
