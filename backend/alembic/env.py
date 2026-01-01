@@ -17,8 +17,8 @@ from app.core.config import settings
 # Alembic Config object
 config = context.config
 
-# Override sqlalchemy.url with environment variable
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# Override sqlalchemy.url with environment variable (handles postgres:// -> postgresql://)
+config.set_main_option("sqlalchemy.url", settings.actual_database_url)
 
 # Setup logging
 if config.config_file_name is not None:

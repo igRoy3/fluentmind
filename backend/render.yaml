@@ -1,0 +1,38 @@
+# Render.com Blueprint for FluentMind Backend
+# Deploy by connecting your GitHub repo to Render
+
+databases:
+  - name: fluentmind-db
+    databaseName: fluentmind
+    user: fluentmind
+    plan: free # Use 'starter' for production
+    region: oregon
+
+services:
+  - type: web
+    name: fluentmind-api
+    runtime: python
+    region: oregon
+    plan: free # Use 'starter' for production
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fluentmind-db
+          property: connectionString
+      - key: OPENAI_API_KEY
+        sync: false # Set manually in Render dashboard
+      - key: FIREBASE_CREDENTIALS_JSON
+        sync: false # Set manually - paste Firebase service account JSON
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: RATE_LIMIT
+        value: "100/minute"
+      - key: PYTHON_VERSION
+        value: "3.11"

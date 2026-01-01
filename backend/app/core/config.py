@@ -1,6 +1,8 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 from typing import Literal
+import os
+import json
 
 
 class Settings(BaseSettings):
@@ -16,11 +18,12 @@ class Settings(BaseSettings):
     port: int = Field(8000, validation_alias="PORT")
     host: str = Field("0.0.0.0", validation_alias="HOST")
     
-    # Database
+    # Database - supports both SQLite (dev) and PostgreSQL (prod)
     database_url: str = Field("sqlite:///./dev.db", validation_alias="DATABASE_URL")
     
     # Authentication
     firebase_credentials_path: str | None = Field(None, validation_alias="FIREBASE_CREDENTIALS_PATH")
+    firebase_credentials_json: str | None = Field(None, validation_alias="FIREBASE_CREDENTIALS_JSON")
     
     # OpenAI / AI settings
     openai_api_key: str | None = Field(None, validation_alias="OPENAI_API_KEY")
@@ -45,6 +48,24 @@ class Settings(BaseSettings):
         if self.cors_origins == "*":
             return ["*"]
         return [origin.strip() for origin in self.cors_origins.split(",")]
+    
+    @property
+    def actual_database_url(self) -> str:
+        """Get the database URL, converting Render's postgres:// to postgresql://"""
+        url = self.database_url
+        # Render uses postgres:// but SQLAlchemy needs postgresql://
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql://", 1)
+        return url
+    
+    def get_firebase_credentials(self) -> dict | None:
+        """Get Firebase credentials from JSON string or file path."""
+        if self.firebase_credentials_json:
+            try:
+                return json.loads(self.firebase_credentials_json)
+            except json.JSONDecodeError:
+                return None
+        return None
 
 
 settings = Settings()
