@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 /// Firebase Auth instance provider
 final firebaseAuthProvider = Provider<FirebaseAuth>((ref) {
@@ -31,8 +30,10 @@ class AuthService {
 
   // Toggle for local testing without platform social setup.
   // Set via `--dart-define=USE_MOCK_SOCIAL_SIGN_IN=false` to disable mock.
-  static const bool useMockSocialSignIn =
-      bool.fromEnvironment('USE_MOCK_SOCIAL_SIGN_IN', defaultValue: true);
+  static const bool useMockSocialSignIn = bool.fromEnvironment(
+    'USE_MOCK_SOCIAL_SIGN_IN',
+    defaultValue: true,
+  );
 
   /// Get current user
   User? get currentUser => _auth.currentUser;
@@ -171,37 +172,12 @@ class AuthService {
     if (useMockSocialSignIn) {
       return AuthResult.success(null);
     }
-    try {
-      final appleCredential = await SignInWithApple.getAppleIDCredential(
-        scopes: [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
-      );
 
-      final oauthCredential = OAuthProvider("apple.com").credential(
-        idToken: appleCredential.identityToken,
-        accessToken: appleCredential.authorizationCode,
-      );
-
-      final userCredential = await _auth.signInWithCredential(oauthCredential);
-
-      // Update display name if available
-      if (appleCredential.givenName != null || appleCredential.familyName != null) {
-        final displayName = [appleCredential.givenName, appleCredential.familyName]
-            .where((s) => s != null && s.isNotEmpty)
-            .join(' ');
-        if (displayName.isNotEmpty) {
-          await userCredential.user?.updateDisplayName(displayName);
-        }
-      }
-
-      return AuthResult.success(userCredential.user);
-    } on FirebaseAuthException catch (e) {
-      return AuthResult.failure(_getErrorMessage(e.code));
-    } catch (e) {
-      return AuthResult.failure('Apple sign-in failed');
-    }
+    // Apple Sign-In not included in this build. Return a clear failure message
+    // so UI can show an appropriate error if user taps the Apple button.
+    return AuthResult.failure(
+      'Apple Sign-In not available in this build (plugin removed).',
+    );
   }
 }
 

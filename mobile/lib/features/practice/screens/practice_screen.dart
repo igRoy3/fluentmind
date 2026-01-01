@@ -74,6 +74,10 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
       });
 
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!mounted) {
+          timer.cancel();
+          return;
+        }
         setState(() {
           _recordingSeconds++;
         });
@@ -106,6 +110,8 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
 
         final practiceState = ref.read(practiceProvider);
 
+        if (!mounted) return;
+
         if (practiceState.status == PracticeStatus.completed) {
           setState(() {
             _transcription = practiceState.transcription;
@@ -123,8 +129,10 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
       }
     } catch (e) {
       print('❌ Exception in _stopRecording: $e');
-      _showErrorSnackBar('Failed to process recording: $e');
-      _reset();
+      if (mounted) {
+        _showErrorSnackBar('Failed to process recording: $e');
+        _reset();
+      }
     }
   }
 
@@ -150,8 +158,10 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
         }
       });
     } catch (e) {
-      setState(() => _isPlaying = false);
-      _showErrorSnackBar('Failed to play recording: $e');
+      if (mounted) {
+        setState(() => _isPlaying = false);
+        _showErrorSnackBar('Failed to play recording: $e');
+      }
     }
   }
 
