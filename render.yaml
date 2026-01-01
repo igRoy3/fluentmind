@@ -8,7 +8,7 @@ services:
     runtime: python
     region: oregon
     plan: free # Use 'starter' for production
-    rootDirectory: backend
+    rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
     healthCheckPath: /health
