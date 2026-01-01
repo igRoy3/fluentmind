@@ -13,6 +13,10 @@ import '../../features/home/screens/main_shell.dart';
 import '../../features/vocabulary/screens/vocabulary_screen.dart';
 import '../../features/games/screens/games_screen.dart';
 import '../../features/games/screens/game_play_screen.dart';
+import '../../features/word_association/screens/word_association_home_screen.dart';
+import '../../features/word_association/screens/word_association_play_screen.dart';
+import '../../features/word_association/models/word_association_models.dart';
+import '../gamification/screens/progress_dashboard_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -97,6 +101,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'game_play',
         builder: (context, state) =>
             GamePlayScreen(gameId: state.pathParameters['gameId']!),
+      ),
+
+      // Word Association Game
+      GoRoute(
+        path: '/word-association',
+        name: 'word_association',
+        builder: (context, state) => const WordAssociationHomeScreen(),
+      ),
+      GoRoute(
+        path: '/word-association/play',
+        name: 'word_association_play',
+        builder: (context, state) {
+          final mode = state.extra as GameMode? ?? GameMode.association;
+          return WordAssociationPlayScreen(mode: mode);
+        },
+      ),
+
+      // Progress Dashboard (Gamification)
+      GoRoute(
+        path: '/progress-dashboard',
+        name: 'progress_dashboard',
+        builder: (context, state) => const ProgressDashboardScreen(),
       ),
     ],
   );

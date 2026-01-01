@@ -209,41 +209,55 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.close_rounded),
+          icon: Icon(
+            Icons.close_rounded,
+            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+          ),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Practice'),
+        title: Text(
+          'Practice',
+          style: TextStyle(
+            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+          ),
+        ),
         actions: [
           if (_state == PracticeState.feedback)
             IconButton(
-              icon: const Icon(Icons.refresh_rounded),
+              icon: Icon(
+                Icons.refresh_rounded,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
+              ),
               onPressed: _reset,
             ),
         ],
       ),
-      body: SafeArea(child: _buildBody()),
+      body: SafeArea(child: _buildBody(isDark)),
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(bool isDark) {
     switch (_state) {
       case PracticeState.idle:
-        return _buildIdleState();
+        return _buildIdleState(isDark);
       case PracticeState.recording:
-        return _buildRecordingState();
+        return _buildRecordingState(isDark);
       case PracticeState.processing:
-        return _buildProcessingState();
+        return _buildProcessingState(isDark);
       case PracticeState.feedback:
-        return _buildFeedbackState();
+        return _buildFeedbackState(isDark);
     }
   }
 
-  Widget _buildIdleState() {
+  Widget _buildIdleState(bool isDark) {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -254,11 +268,11 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? AppColors.cardDark : Colors.white,
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -315,9 +329,11 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
           // Instructions
           Text(
             'Tap the microphone to start',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
+            ),
           ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
 
           const SizedBox(height: 32),
@@ -334,7 +350,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
     );
   }
 
-  Widget _buildRecordingState() {
+  Widget _buildRecordingState(bool isDark) {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -361,9 +377,11 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
 
           Text(
             'Recording...',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(color: AppColors.textSecondary),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
+            ),
           ),
 
           const SizedBox(height: 48),
@@ -376,9 +394,11 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
           // Stop instruction
           Text(
             'Tap to stop recording',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
+            ),
           ),
 
           const SizedBox(height: 32),
@@ -393,7 +413,9 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                 icon: const Icon(Icons.close_rounded),
                 iconSize: 32,
                 style: IconButton.styleFrom(
-                  backgroundColor: Colors.grey.shade200,
+                  backgroundColor: isDark
+                      ? AppColors.surfaceDark
+                      : Colors.grey.shade200,
                   padding: const EdgeInsets.all(16),
                 ),
               ),
@@ -412,7 +434,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
     );
   }
 
-  Widget _buildProcessingState() {
+  Widget _buildProcessingState(bool isDark) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -448,25 +470,27 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
 
           Text(
             'Analyzing your speech...',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(color: AppColors.textSecondary),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
+            ),
           ),
 
           const SizedBox(height: 8),
 
           Text(
             'This may take a moment',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: AppColors.textHint),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: isDark ? AppColors.textHintDark : AppColors.textHint,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFeedbackState() {
+  Widget _buildFeedbackState(bool isDark) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -476,11 +500,11 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? AppColors.cardDark : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),

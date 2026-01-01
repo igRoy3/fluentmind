@@ -94,7 +94,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       setState(() => _isLoading = false);
 
       if (result.isSuccess) {
-        _showSuccess('Account created successfully!');
+        _showSuccess(
+          'Account created! Please check your email to verify your account.',
+        );
         context.go('/home');
       } else {
         _showError(result.error ?? 'Sign up failed');
@@ -104,13 +106,18 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
+          icon: Icon(
+            Icons.arrow_back_ios,
+            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+          ),
           onPressed: () => context.pop(),
         ),
       ),
@@ -132,9 +139,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
               Text(
                 'Start your language learning journey today',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary,
+                ),
               ).animate().fadeIn(delay: 100.ms, duration: 500.ms),
 
               const SizedBox(height: 40),

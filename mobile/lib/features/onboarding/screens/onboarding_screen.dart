@@ -21,21 +21,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       icon: Icons.mic_rounded,
       iconColor: AppColors.primary,
       title: 'Speak Naturally',
-      description: 'Practice speaking in real conversations. Our AI listens and understands your unique voice.',
+      description:
+          'Practice speaking in real conversations. Our AI listens and understands your unique voice.',
       gradient: AppColors.primaryGradient,
     ),
     OnboardingPageData(
       icon: Icons.auto_awesome_rounded,
       iconColor: AppColors.secondary,
       title: 'Instant AI Feedback',
-      description: 'Get personalized feedback on pronunciation, grammar, and fluency in real-time.',
+      description:
+          'Get personalized feedback on pronunciation, grammar, and fluency in real-time.',
       gradient: AppColors.accentGradient,
     ),
     OnboardingPageData(
       icon: Icons.trending_up_rounded,
       iconColor: AppColors.accentGreen,
       title: 'Track Your Progress',
-      description: 'Watch your skills improve over time with detailed analytics and achievement tracking.',
+      description:
+          'Watch your skills improve over time with detailed analytics and achievement tracking.',
       gradient: LinearGradient(
         colors: [AppColors.accentGreen, const Color(0xFF55EFC4)],
         begin: Alignment.topLeft,
@@ -67,8 +70,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -82,7 +86,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: Text(
                     'Skip',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondary,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -90,7 +96,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
             ),
-            
+
             // Page View
             Expanded(
               child: PageView.builder(
@@ -106,7 +112,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 },
               ),
             ),
-            
+
             // Bottom Section
             Padding(
               padding: const EdgeInsets.all(32),
@@ -125,15 +131,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         decoration: BoxDecoration(
                           color: _currentPage == index
                               ? AppColors.primary
-                              : AppColors.divider,
+                              : (isDark
+                                    ? AppColors.dividerDark
+                                    : AppColors.divider),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 32),
-                  
+
                   // Next/Get Started Button
                   SizedBox(
                     width: double.infinity,
@@ -157,10 +165,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                       ),
                     ),
-                  )
-                      .animate()
-                      .fadeIn(duration: 400.ms)
-                      .slideY(begin: 0.2),
+                  ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2),
                 ],
               ),
             ),

@@ -35,44 +35,90 @@ class GamesScreen extends ConsumerWidget {
         ),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Stats Header
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Container(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Stats Header
+              Padding(
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: AppColors.accentGradient,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: AppColors.accentGradient,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _StatItem(
+                          icon: Icons.stars_rounded,
+                          value: '${gamesState.totalScore}',
+                          label: 'Total Score',
+                        ),
+                      ),
+                      Container(width: 1, height: 40, color: Colors.white24),
+                      Expanded(
+                        child: _StatItem(
+                          icon: Icons.local_fire_department,
+                          value: '${gamesState.currentStreak}',
+                          label: 'Day Streak',
+                        ),
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(duration: 500.ms),
+              ),
+
+              // Featured Game - Word Association
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: _StatItem(
-                        icon: Icons.stars_rounded,
-                        value: '${gamesState.totalScore}',
-                        label: 'Total Score',
+                    Text(
+                      'Featured',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark
+                            ? AppColors.textPrimaryDark
+                            : AppColors.textPrimary,
                       ),
                     ),
-                    Container(width: 1, height: 40, color: Colors.white24),
-                    Expanded(
-                      child: _StatItem(
-                        icon: Icons.local_fire_department,
-                        value: '${gamesState.currentStreak}',
-                        label: 'Day Streak',
-                      ),
+                    const SizedBox(height: 12),
+                    _FeaturedGameCard(
+                      onTap: () => context.push('/word-association'),
+                      isDark: isDark,
                     ),
                   ],
                 ),
-              ).animate().fadeIn(duration: 500.ms),
-            ),
+              ).animate().fadeIn(delay: 200.ms, duration: 400.ms),
 
-            // Games Grid
-            Expanded(
-              child: Padding(
+              const SizedBox(height: 24),
+
+              // Other Games Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  'More Games',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Games Grid
+              Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     childAspectRatio: 0.85,
@@ -91,11 +137,131 @@ class GamesScreen extends ConsumerWidget {
                             context.push('/games/${game.id}');
                           },
                         )
-                        .animate(delay: Duration(milliseconds: 100 * index))
+                        .animate(
+                          delay: Duration(milliseconds: 100 * index + 300),
+                        )
                         .fadeIn(duration: 400.ms)
                         .slideY(begin: 0.2);
                   },
                 ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FeaturedGameCard extends StatelessWidget {
+  final VoidCallback onTap;
+  final bool isDark;
+
+  const _FeaturedGameCard({required this.onTap, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primary,
+              AppColors.primary.withOpacity(0.8),
+              AppColors.accent,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Icon
+            Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(
+                Icons.link_rounded,
+                color: Colors.white,
+                size: 36,
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Text content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'NEW',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Word Association',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Build vocabulary chains and master word intensity',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.85),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Arrow
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.arrow_forward_rounded,
+                color: Colors.white,
+                size: 20,
               ),
             ),
           ],

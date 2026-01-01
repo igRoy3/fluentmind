@@ -10,6 +10,7 @@ class FeedbackCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
         // Score Card
@@ -75,27 +76,29 @@ class FeedbackCard extends StatelessWidget {
             ],
           ),
         ),
-        
+
         const SizedBox(height: 20),
-        
+
         // Transcription Card
         _FeedbackSection(
           icon: Icons.mic_rounded,
           title: 'What you said',
           color: AppColors.secondary,
+          isDark: isDark,
           child: Text(
             feedback.transcription,
             style: Theme.of(context).textTheme.bodyLarge,
           ),
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Corrected Text Card
         _FeedbackSection(
           icon: Icons.auto_fix_high_rounded,
           title: 'Improved version',
           color: AppColors.accentGreen,
+          isDark: isDark,
           child: Text(
             feedback.correctedText,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -104,30 +107,32 @@ class FeedbackCard extends StatelessWidget {
             ),
           ),
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Pronunciation Tips
         if (feedback.pronunciationTips.isNotEmpty)
           _FeedbackSection(
             icon: Icons.record_voice_over_rounded,
             title: 'Pronunciation Tips',
             color: AppColors.primary,
+            isDark: isDark,
             child: Column(
               children: feedback.pronunciationTips
                   .map((tip) => _TipItem(text: tip))
                   .toList(),
             ),
           ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Grammar Notes
         if (feedback.grammarNotes.isNotEmpty)
           _FeedbackSection(
             icon: Icons.spellcheck_rounded,
             title: 'Grammar Notes',
             color: AppColors.accent,
+            isDark: isDark,
             child: Column(
               children: feedback.grammarNotes
                   .map((note) => _TipItem(text: note))
@@ -144,12 +149,14 @@ class _FeedbackSection extends StatelessWidget {
   final String title;
   final Color color;
   final Widget child;
+  final bool isDark;
 
   const _FeedbackSection({
     required this.icon,
     required this.title,
     required this.color,
     required this.child,
+    required this.isDark,
   });
 
   @override
@@ -158,11 +165,11 @@ class _FeedbackSection extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -185,9 +192,9 @@ class _FeedbackSection extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -222,10 +229,7 @@ class _TipItem extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              text,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
           ),
         ],
       ),

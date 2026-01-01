@@ -134,8 +134,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -189,7 +191,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Text(
                   'Sign in to continue your learning journey',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondary,
                   ),
                 ),
               ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
@@ -283,7 +287,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Text(
                       'or continue with',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textHint,
+                        color: isDark
+                            ? AppColors.textHintDark
+                            : AppColors.textHint,
                       ),
                     ),
                   ),
@@ -339,7 +345,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   onPressed: _continueAsGuest,
                   child: Text(
                     'Continue as Guest',
-                    style: TextStyle(color: AppColors.textSecondary),
+                    style: TextStyle(
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondary,
+                    ),
                   ),
                 ),
               ),
@@ -364,12 +374,16 @@ class _SocialButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return SizedBox(
       height: 56,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: AppColors.divider),
+          side: BorderSide(
+            color: isDark ? AppColors.dividerDark : AppColors.divider,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -377,12 +391,18 @@ class _SocialButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 24, color: AppColors.textPrimary),
+            Icon(
+              icon,
+              size: 24,
+              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+            ),
             const SizedBox(width: 8),
             Text(
               label,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
+              style: TextStyle(
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
                 fontWeight: FontWeight.w500,
               ),
             ),

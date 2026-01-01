@@ -87,7 +87,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                       child: _StatCard(
                         icon: Icons.star_rounded,
                         iconColor: AppColors.accentGreen,
-                        value: '${stats?.avgPronunciationScore?.round() ?? 0}',
+                        value: '${stats?.avgPronunciationScore.round() ?? 0}',
                         label: 'Avg Score',
                         isDark: isDark,
                       ),

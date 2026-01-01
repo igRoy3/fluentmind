@@ -37,19 +37,20 @@ dependencies:
   firebase_core: ^3.13.0
   firebase_auth: ^5.6.0
   google_sign_in: ^6.1.0
-  # sign_in_with_apple removed to avoid Android/Kotlin compile issues; add back when
-  # platform support configured.
+  sign_in_with_apple: ^6.1.1  # iOS only - for Apple Sign In
   
   # Charts & Stats
   fl_chart: ^0.70.2
   
   # Animations
   flutter_animate: ^4.5.2
+  confetti: ^0.8.0
   
   # Utils
   intl: ^0.20.2
   path_provider: ^2.1.5
   permission_handler: ^11.3.1
+  crypto: ^3.0.6  # For Apple Sign-In nonce hashing
 
 dev_dependencies:
   flutter_test:

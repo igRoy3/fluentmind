@@ -384,12 +384,25 @@ class PracticeNotifier extends StateNotifier<PracticeState> {
         audioFile: audioFile,
       );
 
-      print('✅ API response received');
+      print('✅ API response received: $result');
 
+      // Backend returns flat structure with transcription, corrected_text, feedback, etc.
       state = state.copyWith(
         status: PracticeStatus.completed,
-        transcription: result['transcription'],
-        feedback: FeedbackResult.fromJson(result['feedback']),
+        transcription: result['transcription'] ?? '',
+        feedback: FeedbackResult(
+          originalText: result['transcription'] ?? '',
+          correctedText: result['corrected_text'] ?? '',
+          overallScore: (result['score'] ?? 50),
+          pronunciationScore: (result['score'] ?? 50),
+          grammarScore: (result['score'] ?? 50),
+          fluencyScore: (result['score'] ?? 50),
+          pronunciationTips: List<String>.from(
+            result['pronunciation_tips'] ?? [],
+          ),
+          grammarCorrections: List<String>.from(result['grammar_notes'] ?? []),
+          suggestions: [result['feedback'] ?? 'Keep practicing!'],
+        ),
       );
     } catch (e) {
       print('❌ Error in stopRecording: $e');

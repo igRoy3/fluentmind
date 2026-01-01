@@ -5,9 +5,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/providers/app_providers.dart';
-import '../widgets/streak_card.dart';
 import '../widgets/quick_action_card.dart';
 import '../widgets/recent_sessions_list.dart';
+import '../widgets/home_gamification_widgets.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -90,13 +90,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
 
-            // Streak Card
+            // Gamification Card (XP, Level, Streak)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: const StreakCard()
+                child: const HomeGamificationCard()
                     .animate()
                     .fadeIn(delay: 200.ms, duration: 500.ms)
+                    .slideY(begin: 0.1),
+              ),
+            ),
+
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+            // Daily Goal Progress
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: const HomeDailyGoalWidget()
+                    .animate()
+                    .fadeIn(delay: 250.ms, duration: 500.ms)
                     .slideY(begin: 0.1),
               ),
             ),

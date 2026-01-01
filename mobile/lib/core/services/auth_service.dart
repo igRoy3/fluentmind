@@ -1,6 +1,11 @@
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 /// Firebase Auth instance provider
 final firebaseAuthProvider = Provider<FirebaseAuth>((ref) {
@@ -29,10 +34,10 @@ class AuthService {
   AuthService(this._auth);
 
   // Toggle for local testing without platform social setup.
-  // Set via `--dart-define=USE_MOCK_SOCIAL_SIGN_IN=false` to disable mock.
+  // Set via `--dart-define=USE_MOCK_SOCIAL_SIGN_IN=true` to enable mock for testing.
   static const bool useMockSocialSignIn = bool.fromEnvironment(
     'USE_MOCK_SOCIAL_SIGN_IN',
-    defaultValue: true,
+    defaultValue: false,
   );
 
   /// Get current user
@@ -74,6 +79,11 @@ class AuthService {
       // Update display name if provided
       if (displayName != null && credential.user != null) {
         await credential.user!.updateDisplayName(displayName);
+      }
+
+      // Send email verification
+      if (credential.user != null && !credential.user!.emailVerified) {
+        await credential.user!.sendEmailVerification();
       }
 
       return AuthResult.success(credential.user);
@@ -173,11 +183,70 @@ class AuthService {
       return AuthResult.success(null);
     }
 
-    // Apple Sign-In not included in this build. Return a clear failure message
-    // so UI can show an appropriate error if user taps the Apple button.
-    return AuthResult.failure(
-      'Apple Sign-In not available in this build (plugin removed).',
-    );
+    try {
+      // Generate a random nonce for security
+      final rawNonce = _generateNonce();
+      final nonce = _sha256ofString(rawNonce);
+
+      // Request credentials from Apple
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: nonce,
+      );
+
+      // Create OAuth credential for Firebase
+      final oauthCredential = OAuthProvider(
+        'apple.com',
+      ).credential(idToken: appleCredential.identityToken, rawNonce: rawNonce);
+
+      // Sign in to Firebase with the Apple credential
+      final userCredential = await _auth.signInWithCredential(oauthCredential);
+
+      // Update display name if provided by Apple (only on first sign-in)
+      final user = userCredential.user;
+      if (user != null &&
+          (user.displayName == null || user.displayName!.isEmpty)) {
+        final fullName = appleCredential.givenName != null
+            ? '${appleCredential.givenName ?? ''} ${appleCredential.familyName ?? ''}'
+                  .trim()
+            : null;
+        if (fullName != null && fullName.isNotEmpty) {
+          await user.updateDisplayName(fullName);
+        }
+      }
+
+      return AuthResult.success(userCredential.user);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        return AuthResult.failure('Sign in cancelled by user');
+      }
+      return AuthResult.failure('Apple sign-in failed: ${e.message}');
+    } on FirebaseAuthException catch (e) {
+      return AuthResult.failure(_getErrorMessage(e.code));
+    } catch (e) {
+      return AuthResult.failure('Apple sign-in failed');
+    }
+  }
+
+  /// Generate a random nonce string
+  String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(
+      length,
+      (_) => charset[random.nextInt(charset.length)],
+    ).join();
+  }
+
+  /// SHA256 hash of a string
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 }
 
