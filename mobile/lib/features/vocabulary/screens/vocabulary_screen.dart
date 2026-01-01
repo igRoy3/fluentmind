@@ -6,13 +6,91 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/providers/app_providers.dart';
 
-class VocabularyScreen extends ConsumerWidget {
+class VocabularyScreen extends ConsumerStatefulWidget {
   const VocabularyScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<VocabularyScreen> createState() => _VocabularyScreenState();
+}
+
+class _VocabularyScreenState extends ConsumerState<VocabularyScreen> {
+  bool _completionShown = false;
+
+  void _showCompletionDialog(
+    BuildContext context,
+    bool isDark,
+    int reviewCount,
+  ) {
+    if (_completionShown) return;
+    _completionShown = true;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? AppColors.cardDark : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Column(
+          children: [
+            const Text('🎉', style: TextStyle(fontSize: 48)),
+            const SizedBox(height: 8),
+            Text(
+              'Great Job!',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'You reviewed $reviewCount words today!\\nKeep up the great work.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: isDark
+                ? AppColors.textSecondaryDark
+                : AppColors.textSecondary,
+          ),
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                context.go('/home');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text('Back to Home'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final vocabState = ref.watch(vocabularyProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Check if session is complete and show completion dialog
+    if (vocabState.currentWord == null &&
+        vocabState.todayWords.isNotEmpty &&
+        !vocabState.isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showCompletionDialog(context, isDark, vocabState.reviewCount);
+      });
+    }
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,

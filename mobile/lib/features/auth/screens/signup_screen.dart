@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/services/persistent_auth_service.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -84,6 +85,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     setState(() => _isLoading = true);
 
     final authService = ref.read(authServiceProvider);
+    final persistentAuthService = ref.read(persistentAuthServiceProvider);
     final result = await authService.signUpWithEmail(
       email: _emailController.text.trim(),
       password: _passwordController.text,
@@ -93,11 +95,15 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     if (mounted) {
       setState(() => _isLoading = false);
 
-      if (result.isSuccess) {
-        _showSuccess(
-          'Account created! Please check your email to verify your account.',
-        );
-        context.go('/home');
+      if (result.isSuccess && result.user != null) {
+        // Mark user as logged in
+        await persistentAuthService.markLoggedIn(result.user!.uid);
+        if (mounted) {
+          _showSuccess(
+            'Account created! Please check your email to verify your account.',
+          );
+          context.go('/home');
+        }
       } else {
         _showError(result.error ?? 'Sign up failed');
       }

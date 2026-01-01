@@ -72,6 +72,7 @@ class WordAssociationState {
     String? error,
     bool clearSession = false,
     bool clearAnswer = false,
+    bool clearCurrentQuestion = false,
   }) {
     return WordAssociationState(
       isLoading: isLoading ?? this.isLoading,
@@ -79,7 +80,7 @@ class WordAssociationState {
       currentSession: clearSession
           ? null
           : (currentSession ?? this.currentSession),
-      currentQuestion: clearSession
+      currentQuestion: clearSession || clearCurrentQuestion
           ? null
           : (currentQuestion ?? this.currentQuestion),
       questionQueue: clearSession
@@ -516,10 +517,17 @@ class WordAssociationNotifier extends StateNotifier<WordAssociationState> {
     if (state.currentMode == GameMode.dailyChallenge) {
       state = state.copyWith(
         dailyChallengesCompleted: state.dailyChallengesCompleted + 1,
+        lastPlayedDate: DateTime.now(),
+        clearCurrentQuestion:
+            true, // Clear current question to trigger results screen
+      );
+    } else {
+      state = state.copyWith(
+        lastPlayedDate: DateTime.now(),
+        clearCurrentQuestion:
+            true, // Clear current question to trigger results screen
       );
     }
-
-    state = state.copyWith(lastPlayedDate: DateTime.now());
 
     _saveProgress();
   }

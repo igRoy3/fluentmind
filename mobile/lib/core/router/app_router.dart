@@ -10,7 +10,9 @@ import '../../features/practice/screens/practice_screen.dart';
 import '../../features/progress/screens/progress_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/home/screens/main_shell.dart';
-import '../../features/vocabulary/screens/vocabulary_screen.dart';
+import '../../features/vocabulary/screens/vocabulary_screen_new.dart';
+import '../../features/conversation/screens/conversation_screen.dart';
+import '../../features/pronunciation/screens/pronunciation_screen.dart';
 import '../../features/games/screens/games_screen.dart';
 import '../../features/games/screens/game_play_screen.dart';
 import '../../features/word_association/screens/word_association_home_screen.dart';
@@ -85,7 +87,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/vocabulary',
         name: 'vocabulary',
-        builder: (context, state) => const VocabularyScreen(),
+        builder: (context, state) => const VocabularyScreenNew(),
+      ),
+
+      // Conversation Screen
+      GoRoute(
+        path: '/conversation',
+        name: 'conversation',
+        builder: (context, state) => const ConversationScreen(),
+      ),
+
+      // Pronunciation Screen
+      GoRoute(
+        path: '/pronunciation',
+        name: 'pronunciation',
+        builder: (context, state) => const PronunciationScreen(),
       ),
 
       // Games Screen

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/services/persistent_auth_service.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -48,6 +49,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     final authService = ref.read(authServiceProvider);
+    final persistentAuthService = ref.read(persistentAuthServiceProvider);
     final result = await authService.signInWithEmail(
       email: _emailController.text.trim(),
       password: _passwordController.text,
@@ -56,8 +58,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (mounted) {
       setState(() => _isLoading = false);
 
-      if (result.isSuccess) {
-        context.go('/home');
+      if (result.isSuccess && result.user != null) {
+        // Mark user as logged in
+        await persistentAuthService.markLoggedIn(result.user!.uid);
+        if (mounted) {
+          context.go('/home');
+        }
       } else {
         _showError(result.error ?? 'Sign in failed');
       }
@@ -67,11 +73,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _signInWithGoogle() async {
     setState(() => _isLoading = true);
     final authService = ref.read(authServiceProvider);
+    final persistentAuthService = ref.read(persistentAuthServiceProvider);
     final result = await authService.signInWithGoogle();
     if (mounted) {
       setState(() => _isLoading = false);
-      if (result.isSuccess) {
-        context.go('/home');
+      if (result.isSuccess && result.user != null) {
+        // Mark user as logged in
+        await persistentAuthService.markLoggedIn(result.user!.uid);
+        if (mounted) {
+          context.go('/home');
+        }
       } else {
         _showError(result.error ?? 'Google sign-in failed');
       }
@@ -81,11 +92,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _signInWithApple() async {
     setState(() => _isLoading = true);
     final authService = ref.read(authServiceProvider);
+    final persistentAuthService = ref.read(persistentAuthServiceProvider);
     final result = await authService.signInWithApple();
     if (mounted) {
       setState(() => _isLoading = false);
-      if (result.isSuccess) {
-        context.go('/home');
+      if (result.isSuccess && result.user != null) {
+        // Mark user as logged in
+        await persistentAuthService.markLoggedIn(result.user!.uid);
+        if (mounted) {
+          context.go('/home');
+        }
       } else {
         _showError(result.error ?? 'Apple sign-in failed');
       }

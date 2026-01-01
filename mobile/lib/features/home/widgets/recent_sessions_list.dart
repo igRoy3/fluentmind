@@ -7,6 +7,7 @@ class RecentSessionsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final sessions = [
       _SessionData(
         title: 'Daily Conversation',
@@ -29,7 +30,9 @@ class RecentSessionsList extends StatelessWidget {
     ];
 
     return Column(
-      children: sessions.map((session) => _SessionCard(data: session)).toList(),
+      children: sessions
+          .map((session) => _SessionCard(data: session, isDark: isDark))
+          .toList(),
     );
   }
 }
@@ -50,8 +53,9 @@ class _SessionData {
 
 class _SessionCard extends StatelessWidget {
   final _SessionData data;
+  final bool isDark;
 
-  const _SessionCard({required this.data});
+  const _SessionCard({required this.data, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -59,11 +63,11 @@ class _SessionCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -91,7 +95,7 @@ class _SessionCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          
+
           // Session Info
           Expanded(
             child: Column(
@@ -101,30 +105,39 @@ class _SessionCard extends StatelessWidget {
                   data.title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   data.date,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondary,
                   ),
                 ),
               ],
             ),
           ),
-          
+
           // Duration
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.surfaceVariant,
+              color: isDark
+                  ? AppColors.surfaceVariantDark
+                  : AppColors.surfaceVariant,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               data.duration,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),

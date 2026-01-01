@@ -1,0 +1,39 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6C63FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#5B52E5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF6B9D;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#C44569;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded square background -->
+  <rect x="0" y="0" width="1024" height="1024" rx="220" fill="url(#bgGradient)"/>
+  
+  <!-- Brain icon (simplified) -->
+  <g transform="translate(200, 180) scale(2.4)">
+    <!-- Brain shape -->
+    <path d="M130 80C130 80 145 60 170 60C195 60 215 80 215 105C215 115 212 124 206 131C220 138 230 152 230 170C230 195 210 215 185 215C180 215 175 214 170 212C165 230 148 243 128 243C108 243 91 230 86 212C81 214 76 215 71 215C46 215 26 195 26 170C26 152 36 138 50 131C44 124 41 115 41 105C41 80 61 60 86 60C111 60 126 80 126 80" 
+          fill="white" stroke="none"/>
+    
+    <!-- Brain details/folds -->
+    <path d="M128 80C128 80 128 120 128 160M90 100C100 110 115 110 128 100M168 100C158 110 143 110 128 100M85 150C100 140 115 145 128 155M171 150C156 140 141 145 128 155" 
+          stroke="rgba(108,99,255,0.3)" stroke-width="8" stroke-linecap="round" fill="none"/>
+  </g>
+  
+  <!-- Chat bubble accent -->
+  <g transform="translate(620, 620)">
+    <rect x="0" y="0" width="180" height="180" rx="50" fill="url(#accentGradient)"/>
+    <!-- Chat icon -->
+    <path d="M90 50C55 50 30 72 30 100C30 115 38 128 52 137L45 165L78 148C82 149 86 150 90 150C125 150 150 128 150 100C150 72 125 50 90 50Z" 
+          fill="white"/>
+    <!-- Dots in chat -->
+    <circle cx="65" cy="100" r="10" fill="url(#accentGradient)"/>
+    <circle cx="90" cy="100" r="10" fill="url(#accentGradient)"/>
+    <circle cx="115" cy="100" r="10" fill="url(#accentGradient)"/>
+  </g>
+</svg>

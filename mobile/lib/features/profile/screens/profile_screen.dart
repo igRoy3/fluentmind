@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +7,12 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/services/persistent_auth_service.dart';
+import '../../../core/services/sound_service.dart';
+import 'help_center_screen.dart';
+import 'feedback_screen.dart';
+import 'terms_of_service_screen.dart';
+import 'privacy_policy_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -144,7 +151,9 @@ class ProfileScreen extends ConsumerWidget {
                       title: 'Target Language',
                       subtitle: 'English (US)',
                       isDark: isDark,
-                      onTap: () {},
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                      },
                     ),
                     Divider(
                       height: 1,
@@ -156,7 +165,9 @@ class ProfileScreen extends ConsumerWidget {
                       title: 'Notifications',
                       subtitle: 'Enabled',
                       isDark: isDark,
-                      onTap: () {},
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                      },
                     ),
                     Divider(
                       height: 1,
@@ -166,6 +177,7 @@ class ProfileScreen extends ConsumerWidget {
                     _ThemeToggleTile(
                       isDark: isDark,
                       onToggle: () {
+                        HapticFeedback.lightImpact();
                         ref.read(themeModeProvider.notifier).toggleTheme();
                       },
                     ),
@@ -174,12 +186,15 @@ class ProfileScreen extends ConsumerWidget {
                       indent: 60,
                       color: isDark ? AppColors.dividerDark : AppColors.divider,
                     ),
-                    _SettingsTile(
-                      icon: Icons.volume_up_rounded,
-                      title: 'Sound Effects',
-                      subtitle: 'On',
+                    _SoundToggleTile(
                       isDark: isDark,
-                      onTap: () {},
+                      soundEnabled: ref
+                          .watch(soundSettingsProvider)
+                          .soundEnabled,
+                      onToggle: () {
+                        HapticFeedback.lightImpact();
+                        ref.read(soundSettingsProvider.notifier).toggleSound();
+                      },
                     ),
                   ],
                 ),
@@ -209,7 +224,15 @@ class ProfileScreen extends ConsumerWidget {
                       icon: Icons.help_outline_rounded,
                       title: 'Help Center',
                       isDark: isDark,
-                      onTap: () {},
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const HelpCenterScreen(),
+                          ),
+                        );
+                      },
                     ),
                     Divider(
                       height: 1,
@@ -220,7 +243,15 @@ class ProfileScreen extends ConsumerWidget {
                       icon: Icons.feedback_outlined,
                       title: 'Send Feedback',
                       isDark: isDark,
-                      onTap: () {},
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const FeedbackScreen(),
+                          ),
+                        );
+                      },
                     ),
                     Divider(
                       height: 1,
@@ -231,7 +262,15 @@ class ProfileScreen extends ConsumerWidget {
                       icon: Icons.privacy_tip_outlined,
                       title: 'Privacy Policy',
                       isDark: isDark,
-                      onTap: () {},
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PrivacyPolicyScreen(),
+                          ),
+                        );
+                      },
                     ),
                     Divider(
                       height: 1,
@@ -242,7 +281,15 @@ class ProfileScreen extends ConsumerWidget {
                       icon: Icons.description_outlined,
                       title: 'Terms of Service',
                       isDark: isDark,
-                      onTap: () {},
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const TermsOfServiceScreen(),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -255,8 +302,10 @@ class ProfileScreen extends ConsumerWidget {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () async {
-                    final authService = ref.read(authServiceProvider);
-                    await authService.signOut();
+                    final persistentAuthService = ref.read(
+                      persistentAuthServiceProvider,
+                    );
+                    await persistentAuthService.signOut();
                     if (context.mounted) {
                       context.go('/login');
                     }
@@ -410,6 +459,56 @@ class _ThemeToggleTile extends StatelessWidget {
       ),
       trailing: Switch.adaptive(
         value: isDark,
+        onChanged: (_) => onToggle(),
+        activeColor: AppColors.primary,
+      ),
+    );
+  }
+}
+
+class _SoundToggleTile extends StatelessWidget {
+  final bool isDark;
+  final bool soundEnabled;
+  final VoidCallback onToggle;
+
+  const _SoundToggleTile({
+    required this.isDark,
+    required this.soundEnabled,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      onTap: onToggle,
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(
+          soundEnabled ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+          color: AppColors.primary,
+          size: 20,
+        ),
+      ),
+      title: Text(
+        'Sound Effects',
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+          fontWeight: FontWeight.w500,
+          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+        ),
+      ),
+      subtitle: Text(
+        soundEnabled ? 'On' : 'Off',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+        ),
+      ),
+      trailing: Switch.adaptive(
+        value: soundEnabled,
         onChanged: (_) => onToggle(),
         activeColor: AppColors.primary,
       ),

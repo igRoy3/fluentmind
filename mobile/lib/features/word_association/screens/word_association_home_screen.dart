@@ -6,9 +6,22 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../models/word_association_models.dart';
 import '../providers/word_association_provider.dart';
+import '../widgets/game_instructions_dialog.dart';
 
 class WordAssociationHomeScreen extends ConsumerWidget {
   const WordAssociationHomeScreen({super.key});
+
+  void _showInstructionsAndStart(BuildContext context, GameMode mode) {
+    showDialog(
+      context: context,
+      builder: (ctx) => GameInstructionsDialog(
+        mode: mode,
+        onStart: () {
+          context.push('/word-association/play', extra: mode);
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -94,12 +107,10 @@ class WordAssociationHomeScreen extends ConsumerWidget {
                     description: 'Connect related words to build associations',
                     color: AppColors.primary,
                     isDark: isDark,
-                    onTap: () {
-                      context.push(
-                        '/word-association/play',
-                        extra: GameMode.association,
-                      );
-                    },
+                    onTap: () => _showInstructionsAndStart(
+                      context,
+                      GameMode.association,
+                    ),
                   )
                   .animate()
                   .fadeIn(delay: 100.ms, duration: 400.ms)
@@ -114,12 +125,8 @@ class WordAssociationHomeScreen extends ConsumerWidget {
                     description: 'Choose the right word for each sentence',
                     color: AppColors.secondary,
                     isDark: isDark,
-                    onTap: () {
-                      context.push(
-                        '/word-association/play',
-                        extra: GameMode.context,
-                      );
-                    },
+                    onTap: () =>
+                        _showInstructionsAndStart(context, GameMode.context),
                   )
                   .animate()
                   .fadeIn(delay: 200.ms, duration: 400.ms)
@@ -134,12 +141,10 @@ class WordAssociationHomeScreen extends ConsumerWidget {
                     description: 'Arrange words from weakest to strongest',
                     color: AppColors.accentGreen,
                     isDark: isDark,
-                    onTap: () {
-                      context.push(
-                        '/word-association/play',
-                        extra: GameMode.strengthOrdering,
-                      );
-                    },
+                    onTap: () => _showInstructionsAndStart(
+                      context,
+                      GameMode.strengthOrdering,
+                    ),
                   )
                   .animate()
                   .fadeIn(delay: 300.ms, duration: 400.ms)
@@ -151,12 +156,10 @@ class WordAssociationHomeScreen extends ConsumerWidget {
               _DailyChallengeCard(
                     isDark: isDark,
                     completedToday: state.dailyChallengesCompleted,
-                    onTap: () {
-                      context.push(
-                        '/word-association/play',
-                        extra: GameMode.dailyChallenge,
-                      );
-                    },
+                    onTap: () => _showInstructionsAndStart(
+                      context,
+                      GameMode.dailyChallenge,
+                    ),
                   )
                   .animate()
                   .fadeIn(delay: 400.ms, duration: 400.ms)

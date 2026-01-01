@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/services/persistent_auth_service.dart';
 import '../widgets/onboarding_page.dart';
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
@@ -47,19 +49,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
   ];
 
-  void _nextPage() {
+  void _nextPage() async {
     if (_currentPage < _pages.length - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
       );
     } else {
-      context.go('/login');
+      // Mark onboarding as completed
+      final persistentAuthService = ref.read(persistentAuthServiceProvider);
+      await persistentAuthService.markOnboardingCompleted();
+      if (mounted) {
+        context.go('/login');
+      }
     }
   }
 
-  void _skip() {
-    context.go('/login');
+  void _skip() async {
+    // Mark onboarding as completed even when skipped
+    final persistentAuthService = ref.read(persistentAuthServiceProvider);
+    await persistentAuthService.markOnboardingCompleted();
+    if (mounted) {
+      context.go('/login');
+    }
   }
 
   @override

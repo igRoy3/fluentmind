@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/providers/app_providers.dart';
+import '../widgets/game_instructions_dialog.dart';
 
 class GamesScreen extends ConsumerWidget {
   const GamesScreen({super.key});
@@ -88,7 +89,13 @@ class GamesScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     _FeaturedGameCard(
-                      onTap: () => context.push('/word-association'),
+                      onTap: () {
+                        showGameInstructions(
+                          context,
+                          gameId: 'word_association',
+                          onStart: () => context.push('/word-association'),
+                        );
+                      },
                       isDark: isDark,
                     ),
                   ],

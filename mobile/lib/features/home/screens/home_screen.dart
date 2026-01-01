@@ -159,7 +159,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       title: 'Conversation',
                       subtitle: 'Practice dialogue',
                       color: AppColors.primary,
-                      onTap: () => context.push('/practice'),
+                      onTap: () => context.push('/conversation'),
                     ),
                     const SizedBox(width: 12),
                     QuickActionCard(
@@ -183,7 +183,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       title: 'Pronunciation',
                       subtitle: 'Perfect your accent',
                       color: AppColors.accentYellow,
-                      onTap: () => context.push('/practice'),
+                      onTap: () => context.push('/pronunciation'),
                     ),
                   ],
                 ).animate().fadeIn(delay: 400.ms, duration: 500.ms),

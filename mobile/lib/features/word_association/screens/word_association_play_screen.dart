@@ -396,72 +396,133 @@ class _FeedbackSection extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Result indicator
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: (isCorrect ? AppColors.success : AppColors.error)
-                      .withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  isCorrect ? Icons.check_rounded : Icons.close_rounded,
-                  color: isCorrect ? AppColors.success : AppColors.error,
-                ),
+          // Result indicator with enhanced feedback
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: (isCorrect ? AppColors.success : AppColors.error)
+                  .withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: (isCorrect ? AppColors.success : AppColors.error)
+                    .withOpacity(0.3),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  isCorrect ? 'Correct!' : 'Not quite right',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isCorrect ? AppColors.success : AppColors.error,
-                  ),
-                ),
-              ),
-              if (isCorrect)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.accentYellow.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.add, color: AppColors.accentYellow, size: 16),
-                      SizedBox(width: 2),
-                      Text(
-                        '10 XP',
-                        style: TextStyle(
-                          color: AppColors.accentYellow,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: (isCorrect ? AppColors.success : AppColors.error)
+                            .withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isCorrect ? Icons.check_rounded : Icons.close_rounded,
+                        color: isCorrect ? AppColors.success : AppColors.error,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isCorrect ? 'Correct! 🎉' : 'Not quite right 💪',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: isCorrect
+                                  ? AppColors.success
+                                  : AppColors.error,
+                            ),
+                          ),
+                          if (!isCorrect)
+                            Text(
+                              'Keep trying, you\'ll get it!',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark
+                                    ? AppColors.textSecondaryDark
+                                    : AppColors.textSecondary,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (isCorrect)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.accentYellow.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.add,
+                              color: AppColors.accentYellow,
+                              size: 16,
+                            ),
+                            SizedBox(width: 2),
+                            Text(
+                              '10 XP',
+                              style: TextStyle(
+                                color: AppColors.accentYellow,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                  ],
                 ),
-            ],
+              ],
+            ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
-          // Explanation
-          Text(
-            explanation,
-            style: TextStyle(
-              fontSize: 14,
+          // Explanation with icon
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
               color: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondary,
+                  ? AppColors.surfaceVariantDark
+                  : AppColors.surfaceVariant,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  isCorrect ? Icons.lightbulb_outline : Icons.school_outlined,
+                  color: isCorrect ? AppColors.accentYellow : AppColors.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    explanation,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimary,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 

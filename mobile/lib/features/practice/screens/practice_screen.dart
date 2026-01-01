@@ -10,7 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/services/audio_service.dart';
 import '../../../core/providers/app_providers.dart';
 import '../widgets/recording_button.dart';
-import '../widgets/waveform_visualizer.dart';
+import '../widgets/dynamic_waveform.dart';
 import '../widgets/feedback_card.dart';
 
 class PracticeScreen extends ConsumerStatefulWidget {
@@ -108,9 +108,12 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
         print('🚀 Submitting audio file to API via provider...');
         await ref.read(practiceProvider.notifier).stopRecording();
 
-        final practiceState = ref.read(practiceProvider);
-
         if (!mounted) return;
+
+        // Wait a short moment then check the state
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        final practiceState = ref.read(practiceProvider);
 
         if (practiceState.status == PracticeStatus.completed) {
           setState(() {
@@ -123,6 +126,23 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
           _showErrorSnackBar(practiceState.error ?? 'Unknown error occurred');
           print('❌ Error: ${practiceState.error}');
           _reset();
+        } else if (practiceState.status == PracticeStatus.processing) {
+          // Still processing - backend may take longer, show timeout message
+          await Future.delayed(const Duration(seconds: 10));
+          if (!mounted) return;
+          final updatedState = ref.read(practiceProvider);
+          if (updatedState.status == PracticeStatus.completed) {
+            setState(() {
+              _transcription = updatedState.transcription;
+              _feedbackResult = updatedState.feedback;
+              _state = PracticeState.feedback;
+            });
+          } else {
+            _showErrorSnackBar(
+              'Speech analysis is taking too long. Please check your backend connection.',
+            );
+            _reset();
+          }
         }
       } else {
         throw Exception('No recording file created');
@@ -357,26 +377,13 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
         children: [
           const Spacer(),
 
-          // Timer
-          Text(
-                _formatTime(_recordingSeconds),
-                style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.accent,
-                ),
-              )
-              .animate(onPlay: (controller) => controller.repeat())
-              .fadeIn()
-              .then()
-              .shimmer(
-                duration: 1500.ms,
-                color: AppColors.accent.withOpacity(0.3),
-              ),
+          // Recording Indicator with time
+          RecordingIndicator(isRecording: true, seconds: _recordingSeconds),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
 
           Text(
-            'Recording...',
+            'Listening...',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: isDark
                   ? AppColors.textSecondaryDark
@@ -386,8 +393,11 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
 
           const SizedBox(height: 48),
 
-          // Waveform
-          const WaveformVisualizer(),
+          // Dynamic Waveform that responds to voice
+          DynamicWaveformVisualizer(
+            amplitudeStream: _audioService.amplitudeStream,
+            isRecording: true,
+          ),
 
           const Spacer(),
 
