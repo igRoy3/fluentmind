@@ -1,12 +1,6 @@
 # Render.com Blueprint for FluentMind Backend
 # Deploy by connecting your GitHub repo to Render
-
-databases:
-  - name: fluentmind-db
-    databaseName: fluentmind
-    user: fluentmind
-    plan: free # Use 'starter' for production
-    region: oregon
+# Note: Database must be created separately due to free tier limits
 
 services:
   - type: web
@@ -21,9 +15,7 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: DATABASE_URL
-        fromDatabase:
-          name: fluentmind-db
-          property: connectionString
+        sync: false # Set manually - use your existing database URL
       - key: OPENAI_API_KEY
         sync: false # Set manually in Render dashboard
       - key: FIREBASE_CREDENTIALS_JSON
