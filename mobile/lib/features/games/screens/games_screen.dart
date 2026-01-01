@@ -5,7 +5,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../core/gamification/providers/gamification_provider.dart';
+import '../../../core/gamification/providers/adaptive_difficulty_provider.dart';
 import '../widgets/game_instructions_dialog.dart';
+import '../widgets/difficulty_selection_dialog.dart';
 
 class GamesScreen extends ConsumerWidget {
   const GamesScreen({super.key});
@@ -13,7 +16,18 @@ class GamesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final gamesState = ref.watch(brainGamesProvider);
+    final gamificationState = ref.watch(gamificationProvider);
+    final gamePerformance = ref.watch(gamePerformanceProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Calculate total score from all games
+    final totalScore = gamePerformance.values.fold<int>(
+      0,
+      (sum, stats) => sum + stats.totalScore,
+    );
+
+    // Get streak from gamification provider (real data)
+    final dayStreak = gamificationState.userProgress.currentStreak;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
@@ -40,7 +54,7 @@ class GamesScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Stats Header
+              // Stats Header - using real data
               Padding(
                 padding: const EdgeInsets.all(20),
                 child: Container(
@@ -54,7 +68,7 @@ class GamesScreen extends ConsumerWidget {
                       Expanded(
                         child: _StatItem(
                           icon: Icons.stars_rounded,
-                          value: '${gamesState.totalScore}',
+                          value: '$totalScore',
                           label: 'Total Score',
                         ),
                       ),
@@ -62,7 +76,7 @@ class GamesScreen extends ConsumerWidget {
                       Expanded(
                         child: _StatItem(
                           icon: Icons.local_fire_department,
-                          value: '${gamesState.currentStreak}',
+                          value: '$dayStreak',
                           label: 'Day Streak',
                         ),
                       ),
@@ -135,13 +149,31 @@ class GamesScreen extends ConsumerWidget {
                   itemCount: gamesState.availableGames.length,
                   itemBuilder: (context, index) {
                     final game = gamesState.availableGames[index];
+                    // Get real best score from game performance provider
+                    final gameStats = gamePerformance[game.id];
+                    final realBestScore = gameStats?.bestScore;
+
                     return _GameCard(
                           game: game,
-                          onTap: () {
-                            ref
-                                .read(brainGamesProvider.notifier)
-                                .startGame(game.id);
-                            context.push('/games/${game.id}');
+                          realBestScore: realBestScore,
+                          onTap: () async {
+                            // Show difficulty selection dialog
+                            final difficulty =
+                                await showDifficultySelectionDialog(
+                                  context: context,
+                                  gameId: game.id,
+                                  gameName: game.name,
+                                );
+
+                            if (difficulty != null && context.mounted) {
+                              ref
+                                  .read(brainGamesProvider.notifier)
+                                  .startGame(game.id);
+                              // Pass difficulty as query parameter
+                              context.push(
+                                '/games/${game.id}?difficulty=${difficulty.index}',
+                              );
+                            }
                           },
                         )
                         .animate(
@@ -315,8 +347,13 @@ class _StatItem extends StatelessWidget {
 class _GameCard extends StatelessWidget {
   final BrainGame game;
   final VoidCallback onTap;
+  final int? realBestScore;
 
-  const _GameCard({required this.game, required this.onTap});
+  const _GameCard({
+    required this.game,
+    required this.onTap,
+    this.realBestScore,
+  });
 
   IconData _getIconData(IconType type) {
     switch (type) {
@@ -409,7 +446,7 @@ class _GameCard extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            // High Score
+            // High Score - use real data if available
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
@@ -417,7 +454,7 @@ class _GameCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                'Best: ${game.highScore}',
+                'Best: ${realBestScore ?? game.highScore}',
                 style: TextStyle(
                   color: game.color,
                   fontWeight: FontWeight.w600,

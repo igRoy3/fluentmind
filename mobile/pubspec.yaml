@@ -1,7 +1,7 @@
 name: fluentmind
 description: "AI-powered language learning app"
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: ^3.10.4
@@ -52,6 +52,7 @@ dependencies:
   permission_handler: ^11.3.1
   crypto: ^3.0.6  # For Apple Sign-In nonce hashing
   url_launcher: ^6.3.2
+  uuid: ^4.2.1  # For generating unique IDs
 
 dev_dependencies:
   flutter_test:

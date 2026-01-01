@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/services/sound_service.dart';
+import '../../../core/services/user_journey_service.dart';
 
 // Vocabulary word model
 class VocabWord {
@@ -447,6 +447,7 @@ class _VocabularyScreenNewState extends ConsumerState<VocabularyScreenNew>
   }
 
   void _handleFlashcardGotIt() {
+    final currentWord = _selectedCategory!.words[_currentWordIndex];
     setState(() {
       _wordsLearned++;
       _streak++;
@@ -455,7 +456,26 @@ class _VocabularyScreenNewState extends ConsumerState<VocabularyScreenNew>
       _showDefinition = false;
     });
     _streakController.forward(from: 0);
+
+    // Save word to persistent storage
+    _saveLearnedWord(currentWord);
+
     _nextWord();
+  }
+
+  Future<void> _saveLearnedWord(VocabWord word) async {
+    try {
+      final service = ref.read(userJourneyServiceProvider);
+      await service.addLearnedWord(
+        word: word.word,
+        definition: word.definition,
+        example: word.example,
+        partOfSpeech: word.partOfSpeech,
+      );
+    } catch (e) {
+      // Silently fail - don't interrupt user experience
+      debugPrint('Failed to save learned word: $e');
+    }
   }
 
   void _handleFlashcardStudyAgain() {
@@ -479,6 +499,8 @@ class _VocabularyScreenNewState extends ConsumerState<VocabularyScreenNew>
         _bestStreak = max(_streak, _bestStreak);
         _xpEarned += 15 + (_streak * 3);
         _wordsLearned++;
+        // Save learned word
+        _saveLearnedWord(currentWord);
       } else {
         _streak = 0;
       }
@@ -518,6 +540,8 @@ class _VocabularyScreenNewState extends ConsumerState<VocabularyScreenNew>
           _wordsLearned++;
         });
         _streakController.forward(from: 0);
+        // Save learned word
+        _saveLearnedWord(word);
       } else {
         _streak = 0;
       }
@@ -554,6 +578,8 @@ class _VocabularyScreenNewState extends ConsumerState<VocabularyScreenNew>
         _bestStreak = max(_streak, _bestStreak);
         _xpEarned += 25 + (_streak * 5);
         _wordsLearned++;
+        // Save learned word
+        _saveLearnedWord(currentWord);
       } else {
         _streak = 0;
       }
@@ -591,6 +617,13 @@ class _VocabularyScreenNewState extends ConsumerState<VocabularyScreenNew>
     final accuracy = totalWords > 0
         ? (_wordsLearned / totalWords * 100).round()
         : 0;
+
+    // Determine next mode
+    final currentModeIndex = VocabGameMode.values.indexOf(_gameMode);
+    final hasNextMode = currentModeIndex < VocabGameMode.values.length - 1;
+    final nextMode = hasNextMode
+        ? VocabGameMode.values[currentModeIndex + 1]
+        : null;
 
     showDialog(
       context: context,
@@ -707,6 +740,49 @@ class _VocabularyScreenNewState extends ConsumerState<VocabularyScreenNew>
                     .fadeIn(delay: 300.ms)
                     .scale(begin: const Offset(0.8, 0.8)),
                 const SizedBox(height: 28),
+                // Highlighted "Next Mode" button if there's a next mode
+                if (hasNextMode && nextMode != null) ...[
+                  Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          gradient: AppColors.primaryGradient,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withOpacity(0.4),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _selectGameMode(nextMode);
+                          },
+                          icon: Icon(_getModeIcon(nextMode)),
+                          label: Text(
+                            'Continue to ${_getModeName(nextMode)}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
+                      )
+                      .animate()
+                      .fadeIn(delay: 400.ms)
+                      .shimmer(
+                        duration: 1500.ms,
+                        color: Colors.white.withOpacity(0.3),
+                      ),
+                  const SizedBox(height: 12),
+                ],
                 Row(
                   children: [
                     Expanded(
@@ -725,16 +801,31 @@ class _VocabularyScreenNewState extends ConsumerState<VocabularyScreenNew>
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          context.pop();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: const Text('Done'),
-                      ),
+                      child: hasNextMode
+                          ? OutlinedButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                context.pop();
+                              },
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                              ),
+                              child: const Text('Done'),
+                            )
+                          : ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                context.pop();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                              ),
+                              child: const Text('Complete! 🎉'),
+                            ),
                     ),
                   ],
                 ),
@@ -744,6 +835,32 @@ class _VocabularyScreenNewState extends ConsumerState<VocabularyScreenNew>
         );
       },
     );
+  }
+
+  String _getModeName(VocabGameMode mode) {
+    switch (mode) {
+      case VocabGameMode.flashcard:
+        return 'Flashcards';
+      case VocabGameMode.quiz:
+        return 'Quiz';
+      case VocabGameMode.matching:
+        return 'Matching';
+      case VocabGameMode.spelling:
+        return 'Spelling';
+    }
+  }
+
+  IconData _getModeIcon(VocabGameMode mode) {
+    switch (mode) {
+      case VocabGameMode.flashcard:
+        return Icons.style_rounded;
+      case VocabGameMode.quiz:
+        return Icons.quiz_rounded;
+      case VocabGameMode.matching:
+        return Icons.compare_arrows_rounded;
+      case VocabGameMode.spelling:
+        return Icons.spellcheck_rounded;
+    }
   }
 
   @override
@@ -1676,32 +1793,6 @@ class _VocabularyScreenNewState extends ConsumerState<VocabularyScreenNew>
         ],
       ),
     );
-  }
-
-  String _getModeName(VocabGameMode mode) {
-    switch (mode) {
-      case VocabGameMode.flashcard:
-        return 'Flashcards';
-      case VocabGameMode.quiz:
-        return 'Quiz';
-      case VocabGameMode.matching:
-        return 'Matching';
-      case VocabGameMode.spelling:
-        return 'Spelling';
-    }
-  }
-
-  IconData _getModeIcon(VocabGameMode mode) {
-    switch (mode) {
-      case VocabGameMode.flashcard:
-        return Icons.style_rounded;
-      case VocabGameMode.quiz:
-        return Icons.quiz_rounded;
-      case VocabGameMode.matching:
-        return Icons.compare_arrows_rounded;
-      case VocabGameMode.spelling:
-        return Icons.edit_rounded;
-    }
   }
 
   Color _getDifficultyColor(String difficulty) {

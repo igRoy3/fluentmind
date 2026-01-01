@@ -3,14 +3,16 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/onboarding/screens/onboarding_screen.dart';
 import '../../features/onboarding/screens/splash_screen.dart';
+import '../../features/onboarding/screens/new_onboarding_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/signup_screen.dart';
-import '../../features/home/screens/home_screen.dart';
-import '../../features/practice/screens/practice_screen.dart';
-import '../../features/progress/screens/progress_screen.dart';
+import '../../features/home/screens/new_home_screen.dart';
+import '../../features/practice/screens/enhanced_practice_screen.dart';
+import '../../features/progress/screens/enhanced_progress_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/home/screens/main_shell.dart';
 import '../../features/vocabulary/screens/vocabulary_screen_new.dart';
+import '../../features/vocabulary/screens/vocabulary_review_screen.dart';
 import '../../features/conversation/screens/conversation_screen.dart';
 import '../../features/pronunciation/screens/pronunciation_screen.dart';
 import '../../features/games/screens/games_screen.dart';
@@ -39,6 +41,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const OnboardingScreen(),
       ),
 
+      // New Onboarding (personalized)
+      GoRoute(
+        path: '/new-onboarding',
+        name: 'new_onboarding',
+        builder: (context, state) => const NewOnboardingScreen(),
+      ),
+
       // Auth
       GoRoute(
         path: '/login',
@@ -59,13 +68,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/home',
             name: 'home',
             pageBuilder: (context, state) =>
-                const NoTransitionPage(child: HomeScreen()),
+                const NoTransitionPage(child: NewHomeScreen()),
           ),
           GoRoute(
             path: '/progress',
             name: 'progress',
             pageBuilder: (context, state) =>
-                const NoTransitionPage(child: ProgressScreen()),
+                const NoTransitionPage(child: EnhancedProgressScreen()),
           ),
           GoRoute(
             path: '/profile',
@@ -80,7 +89,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/practice',
         name: 'practice',
-        builder: (context, state) => const PracticeScreen(),
+        builder: (context, state) => const EnhancedPracticeScreen(),
       ),
 
       // Vocabulary Screen
@@ -88,6 +97,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/vocabulary',
         name: 'vocabulary',
         builder: (context, state) => const VocabularyScreenNew(),
+      ),
+
+      // Vocabulary Review Screen
+      GoRoute(
+        path: '/vocabulary-review',
+        name: 'vocabulary_review',
+        builder: (context, state) => const VocabularyReviewScreen(),
       ),
 
       // Conversation Screen

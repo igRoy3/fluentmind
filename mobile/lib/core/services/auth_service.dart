@@ -155,13 +155,23 @@ class AuthService {
       return AuthResult.success(null);
     }
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        scopes: ['email', 'profile'],
+      );
+
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
-        return AuthResult.failure('Sign in aborted by user');
+        return AuthResult.failure('Sign in cancelled');
       }
 
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
+
+      if (googleAuth.accessToken == null && googleAuth.idToken == null) {
+        return AuthResult.failure(
+          'Google Sign-In not configured. Please use email sign-in.',
+        );
+      }
 
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
@@ -173,7 +183,16 @@ class AuthService {
     } on FirebaseAuthException catch (e) {
       return AuthResult.failure(_getErrorMessage(e.code));
     } catch (e) {
-      return AuthResult.failure('Google sign-in failed');
+      // Check for common configuration issues
+      final errorMessage = e.toString().toLowerCase();
+      if (errorMessage.contains('apiexception') ||
+          errorMessage.contains('12500') ||
+          errorMessage.contains('sign_in_failed')) {
+        return AuthResult.failure(
+          'Google Sign-In is not available. Please use email sign-in or try again later.',
+        );
+      }
+      return AuthResult.failure('Google sign-in failed. Please try again.');
     }
   }
 

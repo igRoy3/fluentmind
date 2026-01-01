@@ -114,7 +114,7 @@ class ProfileScreen extends ConsumerWidget {
                           const SizedBox(width: 8),
                           Text(
                             user != null
-                                ? 'Member since Dec 2024'
+                                ? 'Member since ${_formatMemberDate(user.metadata.creationTime)}'
                                 : 'Sign in to save progress',
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: Colors.white),
@@ -514,4 +514,26 @@ class _SoundToggleTile extends StatelessWidget {
       ),
     );
   }
+}
+
+// Helper function to format member since date
+String _formatMemberDate(DateTime? date) {
+  if (date == null) return 'recently';
+
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
+  return '${months[date.month - 1]} ${date.year}';
 }

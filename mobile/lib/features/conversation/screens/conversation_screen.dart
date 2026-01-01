@@ -8,7 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/audio_service.dart';
-import '../../../core/services/sound_service.dart';
+// Sound service removed - not currently used
 import '../../practice/widgets/dynamic_waveform.dart';
 
 // Conversation scenarios data

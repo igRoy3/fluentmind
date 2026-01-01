@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'auth_service.dart';
+import 'user_journey_service.dart';
 
 /// Keys for SharedPreferences
 class _PrefsKeys {
@@ -94,10 +95,21 @@ class PersistentAuthService {
     // Check Firebase auth state first (most reliable)
     final firebaseUser = _firebaseAuth.currentUser;
 
+    // Check if the new personalized onboarding has been completed
+    final journeyService = UserJourneyService();
+    final hasCompletedNewOnboarding = await journeyService
+        .isOnboardingComplete();
+
     if (firebaseUser != null) {
       // User is authenticated with Firebase
       await markLoggedIn(firebaseUser.uid);
       await markOnboardingCompleted(); // Assume they've seen onboarding
+
+      // Check if they've completed the new personalized onboarding
+      if (!hasCompletedNewOnboarding) {
+        return '/new-onboarding';
+      }
+
       return '/home';
     }
 

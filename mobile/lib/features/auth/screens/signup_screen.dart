@@ -55,6 +55,14 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     );
   }
 
+  bool _isValidEmail(String email) {
+    // Comprehensive email validation regex
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
+    return emailRegex.hasMatch(email);
+  }
+
   void _signUp() async {
     // Validation
     if (_nameController.text.isEmpty) {
@@ -63,6 +71,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     }
     if (_emailController.text.isEmpty) {
       _showError('Please enter your email');
+      return;
+    }
+    if (!_isValidEmail(_emailController.text.trim())) {
+      _showError('Please enter a valid email address');
       return;
     }
     if (_passwordController.text.isEmpty) {
