@@ -39,7 +39,13 @@ class GamesScreen extends ConsumerWidget {
             Icons.arrow_back_ios_rounded,
             color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
           ),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/home');
+            }
+          },
         ),
         title: Text(
           'Brain Games',

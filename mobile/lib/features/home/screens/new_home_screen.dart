@@ -154,7 +154,7 @@ class _NewHomeScreenState extends ConsumerState<NewHomeScreen> {
                   ),
                   child: BrainGamesCard(
                     isDark: isDark,
-                    onTap: () => context.go('/games'),
+                    onTap: () => context.push('/games'),
                   ),
                 ).animate().fadeIn(delay: 100.ms, duration: 400.ms),
               ),
