@@ -585,13 +585,29 @@ class UserJourneyService {
   }
 
   Future<Achievement?> _checkVocabularyAchievements(int wordCount) async {
-    if (wordCount == 10) {
+    if (wordCount == 1) {
+      return _addAchievement(
+        id: 'vocab_first',
+        title: 'First Word',
+        description: 'Learned your very first word!',
+        type: AchievementType.vocabulary,
+        icon: '🌱',
+      );
+    } else if (wordCount == 10) {
       return _addAchievement(
         id: 'vocab_10',
         title: 'Word Collector',
-        description: 'Learned your first 10 words!',
+        description: 'Learned 10 words!',
         type: AchievementType.vocabulary,
         icon: '📚',
+      );
+    } else if (wordCount == 25) {
+      return _addAchievement(
+        id: 'vocab_25',
+        title: 'Word Explorer',
+        description: 'Discovered 25 new words!',
+        type: AchievementType.vocabulary,
+        icon: '🔍',
       );
     } else if (wordCount == 50) {
       return _addAchievement(
@@ -609,6 +625,22 @@ class UserJourneyService {
         type: AchievementType.vocabulary,
         icon: '🏆',
       );
+    } else if (wordCount == 250) {
+      return _addAchievement(
+        id: 'vocab_250',
+        title: 'Lexicon Legend',
+        description: 'Incredible! 250 words mastered!',
+        type: AchievementType.vocabulary,
+        icon: '👑',
+      );
+    } else if (wordCount == 500) {
+      return _addAchievement(
+        id: 'vocab_500',
+        title: 'Word Wizard',
+        description: 'You\'ve learned 500 words! Outstanding!',
+        type: AchievementType.vocabulary,
+        icon: '🧙',
+      );
     }
     return null;
   }
@@ -616,13 +648,29 @@ class UserJourneyService {
   Future<Achievement?> checkStreakAchievements() async {
     final stats = await getJourneyStats();
 
-    if (stats.currentStreak == 7) {
+    if (stats.currentStreak == 3) {
+      return _addAchievement(
+        id: 'streak_3',
+        title: 'Getting Started',
+        description: '3 days in a row! Keep it up!',
+        type: AchievementType.streak,
+        icon: '🌟',
+      );
+    } else if (stats.currentStreak == 7) {
       return _addAchievement(
         id: 'streak_7',
         title: 'Week Warrior',
         description: '7 days of consistent practice!',
         type: AchievementType.streak,
         icon: '🔥',
+      );
+    } else if (stats.currentStreak == 14) {
+      return _addAchievement(
+        id: 'streak_14',
+        title: 'Two Week Champion',
+        description: '14 days! You\'re on fire!',
+        type: AchievementType.streak,
+        icon: '💪',
       );
     } else if (stats.currentStreak == 30) {
       return _addAchievement(
@@ -632,8 +680,248 @@ class UserJourneyService {
         type: AchievementType.streak,
         icon: '⭐',
       );
+    } else if (stats.currentStreak == 60) {
+      return _addAchievement(
+        id: 'streak_60',
+        title: 'Dedication King',
+        description: '60 days! Absolutely phenomenal!',
+        type: AchievementType.streak,
+        icon: '🎖️',
+      );
+    } else if (stats.currentStreak == 100) {
+      return _addAchievement(
+        id: 'streak_100',
+        title: 'Century Streak',
+        description: '100 days! You\'re unstoppable!',
+        type: AchievementType.streak,
+        icon: '🏅',
+      );
+    } else if (stats.currentStreak == 365) {
+      return _addAchievement(
+        id: 'streak_365',
+        title: 'Year of Excellence',
+        description: 'A full year! Legendary dedication!',
+        type: AchievementType.streak,
+        icon: '👑',
+      );
     }
     return null;
+  }
+
+  /// Check and award game-related achievements
+  Future<Achievement?> checkGameAchievements({
+    int? gamesPlayed,
+    int? highScore,
+    String? gameId,
+  }) async {
+    // Update game session count
+    final stats = await getJourneyStats();
+    await saveJourneyStats(
+      stats.copyWith(totalGameSessions: stats.totalGameSessions + 1),
+    );
+
+    final actualGamesPlayed = gamesPlayed ?? (stats.totalGameSessions + 1);
+
+    // First game played
+    if (actualGamesPlayed == 1) {
+      return _addAchievement(
+        id: 'game_first',
+        title: 'First Game',
+        description: 'Played your first brain game!',
+        type: AchievementType.milestone,
+        icon: '🎮',
+      );
+    } else if (actualGamesPlayed == 10) {
+      return _addAchievement(
+        id: 'game_10',
+        title: 'Game Enthusiast',
+        description: 'Played 10 brain games!',
+        type: AchievementType.milestone,
+        icon: '🎲',
+      );
+    } else if (actualGamesPlayed == 50) {
+      return _addAchievement(
+        id: 'game_50',
+        title: 'Brain Trainer',
+        description: '50 games played! Your brain is getting stronger!',
+        type: AchievementType.milestone,
+        icon: '🧠',
+      );
+    } else if (actualGamesPlayed == 100) {
+      return _addAchievement(
+        id: 'game_100',
+        title: 'Mind Athlete',
+        description: '100 games! You\'re a mental champion!',
+        type: AchievementType.milestone,
+        icon: '🏆',
+      );
+    }
+
+    // High score achievements
+    if (highScore != null && highScore >= 100) {
+      await _addAchievement(
+        id: 'score_100',
+        title: 'Century Score',
+        description: 'Scored 100+ points in a game!',
+        type: AchievementType.milestone,
+        icon: '💯',
+      );
+    }
+    if (highScore != null && highScore >= 500) {
+      await _addAchievement(
+        id: 'score_500',
+        title: 'Score Master',
+        description: 'Scored 500+ points in a game!',
+        type: AchievementType.milestone,
+        icon: '🌟',
+      );
+    }
+    if (highScore != null && highScore >= 1000) {
+      await _addAchievement(
+        id: 'score_1000',
+        title: 'Legendary Score',
+        description: 'Scored 1000+ points! Incredible!',
+        type: AchievementType.milestone,
+        icon: '💎',
+      );
+    }
+
+    return null;
+  }
+
+  /// Check and award voice recording achievements
+  Future<Achievement?> checkRecordingAchievements(int recordingCount) async {
+    if (recordingCount == 1) {
+      return _addAchievement(
+        id: 'voice_first',
+        title: 'First Voice',
+        description: 'Made your first voice recording!',
+        type: AchievementType.fluency,
+        icon: '🎤',
+      );
+    } else if (recordingCount == 10) {
+      return _addAchievement(
+        id: 'voice_10',
+        title: 'Voice Learner',
+        description: '10 voice recordings! Keep practicing!',
+        type: AchievementType.fluency,
+        icon: '🎙️',
+      );
+    } else if (recordingCount == 50) {
+      return _addAchievement(
+        id: 'voice_50',
+        title: 'Speaking Star',
+        description: '50 recordings! Your pronunciation is improving!',
+        type: AchievementType.fluency,
+        icon: '⭐',
+      );
+    } else if (recordingCount == 100) {
+      return _addAchievement(
+        id: 'voice_100',
+        title: 'Voice Champion',
+        description: '100 recordings! Master communicator!',
+        type: AchievementType.fluency,
+        icon: '🏆',
+      );
+    }
+    return null;
+  }
+
+  /// Check and award practice time achievements
+  Future<Achievement?> checkPracticeTimeAchievements(int totalMinutes) async {
+    if (totalMinutes >= 60) {
+      await _addAchievement(
+        id: 'time_1h',
+        title: 'First Hour',
+        description: 'Practiced for 1 hour total!',
+        type: AchievementType.milestone,
+        icon: '⏱️',
+      );
+    }
+    if (totalMinutes >= 300) {
+      await _addAchievement(
+        id: 'time_5h',
+        title: 'Dedicated Student',
+        description: '5 hours of practice! Great commitment!',
+        type: AchievementType.milestone,
+        icon: '📖',
+      );
+    }
+    if (totalMinutes >= 600) {
+      await _addAchievement(
+        id: 'time_10h',
+        title: 'Learning Machine',
+        description: '10 hours of practice! Amazing!',
+        type: AchievementType.milestone,
+        icon: '🤖',
+      );
+    }
+    if (totalMinutes >= 1500) {
+      await _addAchievement(
+        id: 'time_25h',
+        title: 'Knowledge Seeker',
+        description: '25 hours invested in learning!',
+        type: AchievementType.milestone,
+        icon: '📚',
+      );
+    }
+    if (totalMinutes >= 3000) {
+      await _addAchievement(
+        id: 'time_50h',
+        title: 'Master Learner',
+        description: '50 hours! Your dedication is inspiring!',
+        type: AchievementType.milestone,
+        icon: '🎓',
+      );
+    }
+    return null;
+  }
+
+  /// Check and award word retention achievements
+  Future<Achievement?> checkRetentionAchievements(int retainedWords) async {
+    if (retainedWords >= 10) {
+      await _addAchievement(
+        id: 'retain_10',
+        title: 'Memory Starter',
+        description: 'Retained 10 words in long-term memory!',
+        type: AchievementType.retention,
+        icon: '🧠',
+      );
+    }
+    if (retainedWords >= 50) {
+      await _addAchievement(
+        id: 'retain_50',
+        title: 'Memory Builder',
+        description: '50 words locked in! Great retention!',
+        type: AchievementType.retention,
+        icon: '🔐',
+      );
+    }
+    if (retainedWords >= 100) {
+      await _addAchievement(
+        id: 'retain_100',
+        title: 'Memory Master',
+        description: '100 words permanently memorized!',
+        type: AchievementType.retention,
+        icon: '🏆',
+      );
+    }
+    return null;
+  }
+
+  /// Award first-time achievements for new users
+  Future<void> checkFirstTimeAchievements() async {
+    final profile = await getUserProfile();
+    if (profile != null) {
+      // First session achievement
+      await _addAchievement(
+        id: 'first_session',
+        title: 'Welcome!',
+        description: 'Completed your first learning session!',
+        type: AchievementType.milestone,
+        icon: '👋',
+      );
+    }
   }
 
   // ==================

@@ -10,6 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/gamification/models/game_difficulty_models.dart';
 import '../../../core/gamification/providers/adaptive_difficulty_provider.dart';
+import '../../../core/services/user_journey_service.dart';
 import '../widgets/game_instructions_dialog.dart';
 
 class GamePlayScreen extends ConsumerStatefulWidget {
@@ -199,6 +200,186 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
   int _patternLevel = 1;
   int _activeCells = 3;
 
+  Color _withOpacity(Color color, double opacity) {
+    final clamped = opacity.clamp(0.0, 1.0);
+    return color.withValues(alpha: clamped);
+  }
+
+  // Show quit confirmation dialog
+  void _showQuitDialog() {
+    // Pause timer if running
+    _mathTimer?.cancel();
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? AppColors.cardDark : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _withOpacity(AppColors.accentYellow, 0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.pause_circle_filled,
+                color: AppColors.accentYellow,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Game Paused',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'What would you like to do?',
+              style: TextStyle(
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _withOpacity(AppColors.primary, 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.stars_rounded, color: AppColors.primary, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Current Score: $_score',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Resume button
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  // Restart timer if it was a math game
+                  if (widget.gameId == 'math_speed' &&
+                      !_gameOver &&
+                      !_showingFeedback) {
+                    _startMathTimer();
+                  }
+                },
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: const Text('Resume Game'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              // Restart button
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _restartGame();
+                },
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Restart Game'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.secondary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: BorderSide(color: AppColors.secondary),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              // End game and save
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _endGame();
+                },
+                icon: const Icon(Icons.save_rounded),
+                label: const Text('End & Save Score'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.accentGreen,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: BorderSide(color: AppColors.accentGreen),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              // Quit without saving
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  this.context.pop();
+                },
+                icon: Icon(Icons.exit_to_app_rounded, color: AppColors.error),
+                label: Text(
+                  'Quit Without Saving',
+                  style: TextStyle(color: AppColors.error),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Restart the current game
+  void _restartGame() {
+    _mathTimer?.cancel();
+    setState(() {
+      _score = 0;
+      _currentQuestion = 0;
+      _gameOver = false;
+      _currentLives = _maxLives;
+      _combo = 0;
+      _maxCombo = 0;
+      _correctAnswers = 0;
+      _showingFeedback = false;
+      _lastAnswerCorrect = null;
+    });
+    _initializeGame();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -312,13 +493,18 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
     HapticFeedback.heavyImpact();
     _shakeController.forward(from: 0);
 
+    var shouldEndGame = false;
     setState(() {
-      _currentLives--;
+      _currentLives = max(0, _currentLives - 1);
       _combo = 0;
-      if (_currentLives <= 0) {
-        _endGame();
+      if (_currentLives == 0) {
+        shouldEndGame = true;
       }
     });
+
+    if (shouldEndGame) {
+      _endGame();
+    }
   }
 
   void _gainPoints(int base) {
@@ -350,6 +536,21 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
 
     // Record session with adaptive difficulty provider for persistence
     _recordGameSession();
+
+    // Check for game-related achievements
+    _checkGameAchievements();
+  }
+
+  Future<void> _checkGameAchievements() async {
+    final journeyService = ref.read(userJourneyServiceProvider);
+    final stats = await journeyService.getJourneyStats();
+
+    // Check achievements based on games played and score
+    await journeyService.checkGameAchievements(
+      gamesPlayed: stats.totalGameSessions + 1,
+      highScore: _score,
+      gameId: widget.gameId,
+    );
   }
 
   Future<void> _recordGameSession() async {
@@ -359,7 +560,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
         : const Duration(minutes: 1);
 
     // Calculate wrong answers
-    final wrongAnswers = _maxLives - _currentLives;
+    final wrongAnswers = (_maxLives - _currentLives).clamp(0, _maxLives);
 
     // Create a completed session
     final session = GameSession(
@@ -667,13 +868,18 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
 
     _originalWord = wordList[random.nextInt(wordList.length)];
     final chars = _originalWord.split('');
-    chars.shuffle();
-    _scrambledWord = chars.join();
 
-    if (_scrambledWord == _originalWord) {
-      _generateWordScramble();
-      return;
+    // Avoid unbounded recursion; try a few shuffles and fall back.
+    var scrambled = _originalWord;
+    for (int i = 0; i < 8; i++) {
+      chars.shuffle();
+      scrambled = chars.join();
+      if (scrambled != _originalWord) break;
     }
+    if (scrambled == _originalWord) {
+      scrambled = chars.reversed.join();
+    }
+    _scrambledWord = scrambled;
 
     // Generate hint based on difficulty
     switch (_difficulty) {
@@ -694,7 +900,8 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
   }
 
   void _checkWordAnswer() {
-    if (_answerController.text.toLowerCase().trim() == _originalWord) {
+    if (_answerController.text.toLowerCase().trim() ==
+        _originalWord.toLowerCase()) {
       _gainPoints(
         _difficulty == GameDifficulty.advanced
             ? 50
@@ -906,23 +1113,20 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
     final random = Random();
 
     // Scale cells with level AND difficulty
-    int baseCells;
+    final int baseCells = _activeCells;
     int cellsPerLevel;
     int showTime;
 
     switch (_difficulty) {
       case GameDifficulty.beginner:
-        baseCells = 2; // Start with just 2 cells
         cellsPerLevel = 1; // Add 1 per level
         showTime = 3000; // 3 seconds to memorize
         break;
       case GameDifficulty.intermediate:
-        baseCells = 4; // Start with 4 cells
         cellsPerLevel = 1; // Add 1 per level
         showTime = 2000; // 2 seconds
         break;
       case GameDifficulty.advanced:
-        baseCells = 6; // Start with 6 cells
         cellsPerLevel = 2; // Add 2 per level
         showTime = 1200; // Only 1.2 seconds!
         break;
@@ -978,11 +1182,12 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
 
   void _checkPattern() {
     bool correct = true;
+    outerLoop:
     for (int i = 0; i < _patternSize; i++) {
       for (int j = 0; j < _patternSize; j++) {
         if (_pattern[i][j] != _userPattern[i][j]) {
           correct = false;
-          break;
+          break outerLoop;
         }
       }
     }
@@ -1073,7 +1278,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
         color: isDark ? AppColors.cardDark : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: _withOpacity(Colors.black, 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -1081,9 +1286,9 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
       ),
       child: Row(
         children: [
-          // Close button
+          // Close button - shows quit dialog instead of instant exit
           GestureDetector(
-            onTap: () => context.pop(),
+            onTap: _showQuitDialog,
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -1163,7 +1368,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: _withOpacity(AppColors.primary, 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -1316,9 +1521,9 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
           BoxShadow(
             color: _showingFeedback
                 ? (_lastAnswerCorrect == true
-                      ? Colors.green.withOpacity(0.3)
-                      : Colors.red.withOpacity(0.3))
-                : AppColors.primary.withOpacity(0.1),
+                      ? _withOpacity(Colors.green, 0.3)
+                      : _withOpacity(Colors.red, 0.3))
+                : _withOpacity(AppColors.primary, 0.1),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -1352,8 +1557,8 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                     height: 48,
                     decoration: BoxDecoration(
                       color: _showingFeedback
-                          ? Colors.white.withOpacity(0.2)
-                          : AppColors.primary.withOpacity(0.1),
+                          ? _withOpacity(Colors.white, 0.2)
+                          : _withOpacity(AppColors.primary, 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(
@@ -1456,7 +1661,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            color: _withOpacity(Colors.black, isDark ? 0.2 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1500,11 +1705,11 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
 
   Widget _buildNumberRow(List<String> numbers, bool isDark) {
     return Row(
-      children: numbers.map((num) {
+      children: numbers.map((digit) {
         return Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: _buildNumberButton(num, isDark),
+            child: _buildNumberButton(digit, isDark),
           ),
         );
       }).toList(),
@@ -1520,7 +1725,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
+              color: _withOpacity(Colors.black, isDark ? 0.2 : 0.08),
               blurRadius: 8,
               offset: const Offset(0, 3),
             ),
@@ -1555,7 +1760,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.orange.withOpacity(0.2),
+                      color: _withOpacity(Colors.orange, 0.2),
                       blurRadius: 8,
                       offset: const Offset(0, 3),
                     ),
@@ -1599,7 +1804,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                   boxShadow: [
                     if (_userAnswer.isNotEmpty)
                       BoxShadow(
-                        color: Colors.green.withOpacity(0.3),
+                        color: _withOpacity(Colors.green, 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       ),
@@ -1661,7 +1866,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                     duration: const Duration(milliseconds: 300),
                     decoration: BoxDecoration(
                       color: isMatched
-                          ? _getCardColor(_cards[index]).withOpacity(0.3)
+                          ? _withOpacity(_getCardColor(_cards[index]), 0.3)
                           : (isRevealed
                                 ? _getCardColor(_cards[index])
                                 : (isDark ? AppColors.cardDark : Colors.white)),
@@ -1669,7 +1874,10 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                       boxShadow: [
                         if (!isMatched)
                           BoxShadow(
-                            color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
+                            color: _withOpacity(
+                              Colors.black,
+                              isDark ? 0.3 : 0.1,
+                            ),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),
@@ -1739,7 +1947,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withOpacity(0.3),
+                  color: _withOpacity(AppColors.primary, 0.3),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -1764,14 +1972,14 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: _withOpacity(Colors.white, 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     _hint,
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.white.withOpacity(0.9),
+                      color: _withOpacity(Colors.white, 0.9),
                     ),
                   ),
                 ),
@@ -1865,7 +2073,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: _withOpacity(AppColors.primary, 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -1885,7 +2093,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
+                  color: _withOpacity(Colors.black, isDark ? 0.2 : 0.08),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -1901,7 +2109,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                   margin: const EdgeInsets.symmetric(horizontal: 4),
                   decoration: BoxDecoration(
                     color: isHidden
-                        ? AppColors.primary.withOpacity(0.15)
+                        ? _withOpacity(AppColors.primary, 0.15)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
@@ -1998,7 +2206,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.3),
+                      color: _withOpacity(AppColors.primary, 0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
@@ -2061,10 +2269,10 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
         decoration: BoxDecoration(
           color: isDark ? AppColors.cardDark : Colors.white,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: color.withOpacity(0.3), width: 2),
+          border: Border.all(color: _withOpacity(color, 0.3), width: 2),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.15),
+              color: _withOpacity(color, 0.15),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
@@ -2076,7 +2284,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: _withOpacity(color, 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(_getCategoryIcon(category), color: color, size: 32),
@@ -2135,8 +2343,8 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               color: _showPattern
-                  ? Colors.orange.withOpacity(0.1)
-                  : AppColors.primary.withOpacity(0.1),
+                  ? _withOpacity(Colors.orange, 0.1)
+                  : _withOpacity(AppColors.primary, 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -2171,7 +2379,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
+                  color: _withOpacity(Colors.black, isDark ? 0.2 : 0.08),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -2213,7 +2421,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                       boxShadow: isActive
                           ? [
                               BoxShadow(
-                                color: AppColors.primary.withOpacity(0.4),
+                                color: _withOpacity(AppColors.primary, 0.4),
                                 blurRadius: 8,
                               ),
                             ]
@@ -2266,7 +2474,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                     borderRadius: BorderRadius.circular(32),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
+                        color: _withOpacity(Colors.black, isDark ? 0.3 : 0.1),
                         blurRadius: 30,
                         offset: const Offset(0, 15),
                       ),
@@ -2288,7 +2496,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.amber.withOpacity(0.4),
+                              color: _withOpacity(Colors.amber, 0.4),
                               blurRadius: 20,
                               offset: const Offset(0, 8),
                             ),
@@ -2435,7 +2643,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: _withOpacity(color, 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(

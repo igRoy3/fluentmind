@@ -376,6 +376,7 @@ class UserJourneyStats {
   final int wordsRetained; // Passed retention test
   final int totalRecordings;
   final int totalMinutesPracticed;
+  final int totalGameSessions; // Brain games played
   final double avgFluencyScore;
   final double fluencyImprovement; // vs baseline
   final int hesitationReduction; // vs baseline
@@ -389,6 +390,7 @@ class UserJourneyStats {
     this.wordsRetained = 0,
     this.totalRecordings = 0,
     this.totalMinutesPracticed = 0,
+    this.totalGameSessions = 0,
     this.avgFluencyScore = 0,
     this.fluencyImprovement = 0,
     this.hesitationReduction = 0,
@@ -406,6 +408,7 @@ class UserJourneyStats {
     'wordsRetained': wordsRetained,
     'totalRecordings': totalRecordings,
     'totalMinutesPracticed': totalMinutesPracticed,
+    'totalGameSessions': totalGameSessions,
     'avgFluencyScore': avgFluencyScore,
     'fluencyImprovement': fluencyImprovement,
     'hesitationReduction': hesitationReduction,
@@ -421,6 +424,7 @@ class UserJourneyStats {
         wordsRetained: json['wordsRetained'] ?? 0,
         totalRecordings: json['totalRecordings'] ?? 0,
         totalMinutesPracticed: json['totalMinutesPracticed'] ?? 0,
+        totalGameSessions: json['totalGameSessions'] ?? 0,
         avgFluencyScore: (json['avgFluencyScore'] ?? 0).toDouble(),
         fluencyImprovement: (json['fluencyImprovement'] ?? 0).toDouble(),
         hesitationReduction: json['hesitationReduction'] ?? 0,
@@ -437,6 +441,7 @@ class UserJourneyStats {
     int? wordsRetained,
     int? totalRecordings,
     int? totalMinutesPracticed,
+    int? totalGameSessions,
     double? avgFluencyScore,
     double? fluencyImprovement,
     int? hesitationReduction,
@@ -449,6 +454,7 @@ class UserJourneyStats {
     wordsRetained: wordsRetained ?? this.wordsRetained,
     totalRecordings: totalRecordings ?? this.totalRecordings,
     totalMinutesPracticed: totalMinutesPracticed ?? this.totalMinutesPracticed,
+    totalGameSessions: totalGameSessions ?? this.totalGameSessions,
     avgFluencyScore: avgFluencyScore ?? this.avgFluencyScore,
     fluencyImprovement: fluencyImprovement ?? this.fluencyImprovement,
     hesitationReduction: hesitationReduction ?? this.hesitationReduction,

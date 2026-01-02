@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/api_service.dart';
 import '../services/audio_service.dart';
+import '../services/data_sync_service.dart';
 
 // ===================
 // Service Providers
@@ -769,13 +770,43 @@ class BrainGamesState {
 }
 
 class BrainGamesNotifier extends StateNotifier<BrainGamesState> {
-  BrainGamesNotifier()
-    : super(BrainGamesState(totalScore: 555, currentStreak: 7)) {
-    loadGames();
+  final Ref _ref;
+
+  BrainGamesNotifier(this._ref) : super(BrainGamesState()) {
+    _initializeGames();
   }
 
-  void loadGames() {
-    final games = [
+  /// Initialize games and load saved scores from storage
+  Future<void> _initializeGames() async {
+    state = state.copyWith(isLoading: true);
+
+    try {
+      // Get saved high scores from sync service
+      final syncService = _ref.read(dataSyncServiceProvider);
+      final savedScores = await syncService.getGameHighScores();
+      final savedStats = await syncService.getUserStats();
+
+      // Build games list with saved scores
+      final games = _buildGamesWithScores(savedScores);
+
+      state = state.copyWith(
+        isLoading: false,
+        games: games,
+        totalScore: savedScores.totalScore,
+        currentStreak: savedStats.currentStreak,
+      );
+    } catch (e) {
+      // Fall back to default games if loading fails
+      state = state.copyWith(
+        isLoading: false,
+        games: _buildGamesWithScores(GameHighScores()),
+        error: 'Failed to load scores: $e',
+      );
+    }
+  }
+
+  List<BrainGame> _buildGamesWithScores(GameHighScores savedScores) {
+    return [
       BrainGame(
         id: 'math_speed',
         name: 'Math Speed',
@@ -783,8 +814,8 @@ class BrainGamesNotifier extends StateNotifier<BrainGamesState> {
         category: 'math',
         iconType: IconType.calculate,
         color: const Color(0xFF6C5CE7),
-        highScore: 150,
-        timesPlayed: 12,
+        highScore: savedScores.scores['math_speed'] ?? 0,
+        timesPlayed: savedScores.timesPlayed['math_speed'] ?? 0,
       ),
       BrainGame(
         id: 'memory_match',
@@ -793,8 +824,8 @@ class BrainGamesNotifier extends StateNotifier<BrainGamesState> {
         category: 'memory',
         iconType: IconType.gridView,
         color: const Color(0xFF00CEC9),
-        highScore: 85,
-        timesPlayed: 8,
+        highScore: savedScores.scores['memory_match'] ?? 0,
+        timesPlayed: savedScores.timesPlayed['memory_match'] ?? 0,
       ),
       BrainGame(
         id: 'word_scramble',
@@ -803,8 +834,8 @@ class BrainGamesNotifier extends StateNotifier<BrainGamesState> {
         category: 'vocabulary',
         iconType: IconType.spellcheck,
         color: const Color(0xFFFF7675),
-        highScore: 200,
-        timesPlayed: 15,
+        highScore: savedScores.scores['word_scramble'] ?? 0,
+        timesPlayed: savedScores.timesPlayed['word_scramble'] ?? 0,
       ),
       BrainGame(
         id: 'logic_sequence',
@@ -813,8 +844,8 @@ class BrainGamesNotifier extends StateNotifier<BrainGamesState> {
         category: 'logic',
         iconType: IconType.psychology,
         color: const Color(0xFFFDCB6E),
-        highScore: 120,
-        timesPlayed: 6,
+        highScore: savedScores.scores['logic_sequence'] ?? 0,
+        timesPlayed: savedScores.timesPlayed['logic_sequence'] ?? 0,
       ),
       BrainGame(
         id: 'category_sort',
@@ -823,8 +854,8 @@ class BrainGamesNotifier extends StateNotifier<BrainGamesState> {
         category: 'vocabulary',
         iconType: IconType.category,
         color: const Color(0xFF00B894),
-        highScore: 90,
-        timesPlayed: 4,
+        highScore: savedScores.scores['category_sort'] ?? 0,
+        timesPlayed: savedScores.timesPlayed['category_sort'] ?? 0,
       ),
       BrainGame(
         id: 'pattern_recognition',
@@ -833,12 +864,15 @@ class BrainGamesNotifier extends StateNotifier<BrainGamesState> {
         category: 'logic',
         iconType: IconType.pattern,
         color: const Color(0xFFE17055),
-        highScore: 75,
-        timesPlayed: 3,
+        highScore: savedScores.scores['pattern_recognition'] ?? 0,
+        timesPlayed: savedScores.timesPlayed['pattern_recognition'] ?? 0,
       ),
     ];
+  }
 
-    state = state.copyWith(games: games);
+  /// Reload games and scores from storage
+  Future<void> reloadScores() async {
+    await _initializeGames();
   }
 
   void startGame(String gameId) {
@@ -858,9 +892,18 @@ class BrainGamesNotifier extends StateNotifier<BrainGamesState> {
     );
   }
 
-  void updateHighScore(String gameId, int score) {
+  /// Update high score and persist to storage
+  Future<void> updateHighScore(String gameId, int score) async {
+    final currentGame = state.games.firstWhere((g) => g.id == gameId);
+    final isNewHigh = score > currentGame.highScore;
+
+    // Save to sync service (local + cloud)
+    final syncService = _ref.read(dataSyncServiceProvider);
+    await syncService.saveGameHighScore(gameId, score, isNewHigh);
+
+    // Update local state
     final updatedGames = state.games.map((g) {
-      if (g.id == gameId && score > g.highScore) {
+      if (g.id == gameId) {
         return BrainGame(
           id: g.id,
           name: g.name,
@@ -868,16 +911,26 @@ class BrainGamesNotifier extends StateNotifier<BrainGamesState> {
           category: g.category,
           iconType: g.iconType,
           color: g.color,
-          highScore: score,
+          highScore: isNewHigh ? score : g.highScore,
           timesPlayed: g.timesPlayed + 1,
         );
       }
       return g;
     }).toList();
 
-    state = state.copyWith(
-      games: updatedGames,
-      totalScore: state.totalScore + score,
+    final newTotalScore = updatedGames.fold<int>(
+      0,
+      (sum, g) => sum + g.highScore,
+    );
+
+    state = state.copyWith(games: updatedGames, totalScore: newTotalScore);
+
+    // Also update user stats for game session count
+    final currentStats = await syncService.getUserStats();
+    await syncService.saveUserStats(
+      currentStats.copyWith(
+        totalGameSessions: currentStats.totalGameSessions + 1,
+      ),
     );
   }
 
@@ -892,5 +945,5 @@ class BrainGamesNotifier extends StateNotifier<BrainGamesState> {
 
 final brainGamesProvider =
     StateNotifierProvider<BrainGamesNotifier, BrainGamesState>((ref) {
-      return BrainGamesNotifier();
+      return BrainGamesNotifier(ref);
     });

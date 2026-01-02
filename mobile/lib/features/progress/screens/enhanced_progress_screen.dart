@@ -729,29 +729,182 @@ class _AchievementsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (achievements.isEmpty) {
-      return _EmptyStateCard(
-        icon: Icons.emoji_events_rounded,
-        title: 'Earn Achievements',
-        subtitle: 'Complete challenges to unlock badges',
-        isDark: isDark,
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.cardDark : Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.15 : 0.05),
+              blurRadius: 12,
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.accentYellow.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.emoji_events_rounded,
+                size: 32,
+                color: AppColors.accentYellow,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Start Your Journey!',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Complete learning activities to unlock achievements.\nLearn words, practice speaking, and play games!',
+              style: TextStyle(
+                fontSize: 13,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       );
     }
 
-    // Use crossAxisCount: 3 for better spacing on most screens
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        childAspectRatio: 0.9,
+    return Column(
+      children: [
+        // Achievement count header
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: AppColors.accentYellow.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.military_tech_rounded,
+                size: 18,
+                color: AppColors.accentYellow,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '${achievements.length} Achievement${achievements.length != 1 ? 's' : ''} Unlocked',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.accentYellow,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Grid of achievements
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
+            childAspectRatio: 0.85,
+          ),
+          itemCount: achievements.length.clamp(0, 9),
+          itemBuilder: (context, index) {
+            final achievement = achievements[index];
+            return _AchievementBadge(achievement: achievement, isDark: isDark);
+          },
+        ),
+        // View all button if more than 9 achievements
+        if (achievements.length > 9)
+          TextButton(
+            onPressed: () => _showAllAchievements(context),
+            child: Text(
+              'View All ${achievements.length} Achievements',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _showAllAchievements(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, controller) => Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.backgroundDark : AppColors.background,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Text(
+                  'All Achievements',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: GridView.builder(
+                  controller: controller,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 0.85,
+                  ),
+                  itemCount: achievements.length,
+                  itemBuilder: (context, index) {
+                    return _AchievementBadge(
+                      achievement: achievements[index],
+                      isDark: isDark,
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-      itemCount: achievements.length.clamp(0, 9),
-      itemBuilder: (context, index) {
-        final achievement = achievements[index];
-        return _AchievementBadge(achievement: achievement, isDark: isDark);
-      },
     );
   }
 }
@@ -762,34 +915,161 @@ class _AchievementBadge extends StatelessWidget {
 
   const _AchievementBadge({required this.achievement, required this.isDark});
 
+  Color _getAchievementColor() {
+    switch (achievement.type) {
+      case AchievementType.vocabulary:
+        return const Color(0xFF6C5CE7);
+      case AchievementType.streak:
+        return const Color(0xFFFF7675);
+      case AchievementType.fluency:
+        return const Color(0xFF00CEC9);
+      case AchievementType.retention:
+        return const Color(0xFF74B9FF);
+      case AchievementType.milestone:
+        return AppColors.accentYellow;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // All achievements in the list are already earned/unlocked
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.accentYellow.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.accentYellow.withOpacity(0.3)),
+    final color = _getAchievementColor();
+
+    return GestureDetector(
+      onTap: () => _showAchievementDetails(context),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [color.withOpacity(0.2), color.withOpacity(0.1)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: color.withOpacity(0.4)),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Text(achievement.icon, style: const TextStyle(fontSize: 28)),
           ),
-          child: Text(achievement.icon, style: const TextStyle(fontSize: 24)),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          achievement.title,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
-            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+          const SizedBox(height: 8),
+          Text(
+            achievement.title,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
+        ],
+      ),
     );
+  }
+
+  void _showAchievementDetails(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = _getAchievementColor();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.cardDark : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [color.withOpacity(0.2), color.withOpacity(0.1)],
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(color: color.withOpacity(0.3), blurRadius: 16),
+                ],
+              ),
+              child: Text(
+                achievement.icon,
+                style: const TextStyle(fontSize: 48),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              achievement.title,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              achievement.description,
+              style: TextStyle(
+                fontSize: 15,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'Earned ${_formatDate(achievement.earnedAt)}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: color,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+
+    if (diff.inDays == 0) return 'today';
+    if (diff.inDays == 1) return 'yesterday';
+    if (diff.inDays < 7) return '${diff.inDays} days ago';
+    if (diff.inDays < 30) return '${(diff.inDays / 7).floor()} weeks ago';
+    return '${date.day}/${date.month}/${date.year}';
   }
 }
 

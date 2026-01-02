@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/persistent_auth_service.dart';
+import '../../../core/services/user_journey_service.dart';
+import '../../../core/services/data_sync_service.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -61,8 +63,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (result.isSuccess && result.user != null) {
         // Mark user as logged in
         await persistentAuthService.markLoggedIn(result.user!.uid);
+
+        // Sync data from cloud (restore user's progress)
+        final dataSyncService = ref.read(dataSyncServiceProvider);
+        await dataSyncService.syncFromCloud();
+
+        // Check if personalized onboarding is needed (first-time user)
+        final journeyService = UserJourneyService();
+        final hasCompletedNewOnboarding = await journeyService
+            .isOnboardingComplete();
+
         if (mounted) {
-          context.go('/home');
+          if (!hasCompletedNewOnboarding) {
+            context.go('/new-onboarding');
+          } else {
+            context.go('/home');
+          }
         }
       } else {
         _showError(result.error ?? 'Sign in failed');
@@ -80,8 +96,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (result.isSuccess && result.user != null) {
         // Mark user as logged in
         await persistentAuthService.markLoggedIn(result.user!.uid);
+
+        // Sync data from cloud (restore user's progress)
+        final dataSyncService = ref.read(dataSyncServiceProvider);
+        await dataSyncService.syncFromCloud();
+
+        // Check if personalized onboarding is needed (first-time user)
+        final journeyService = UserJourneyService();
+        final hasCompletedNewOnboarding = await journeyService
+            .isOnboardingComplete();
+
         if (mounted) {
-          context.go('/home');
+          if (!hasCompletedNewOnboarding) {
+            context.go('/new-onboarding');
+          } else {
+            context.go('/home');
+          }
         }
       } else {
         _showError(result.error ?? 'Google sign-in failed');
@@ -99,8 +129,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (result.isSuccess && result.user != null) {
         // Mark user as logged in
         await persistentAuthService.markLoggedIn(result.user!.uid);
+
+        // Sync data from cloud (restore user's progress)
+        final dataSyncService = ref.read(dataSyncServiceProvider);
+        await dataSyncService.syncFromCloud();
+
+        // Check if personalized onboarding is needed (first-time user)
+        final journeyService = UserJourneyService();
+        final hasCompletedNewOnboarding = await journeyService
+            .isOnboardingComplete();
+
         if (mounted) {
-          context.go('/home');
+          if (!hasCompletedNewOnboarding) {
+            context.go('/new-onboarding');
+          } else {
+            context.go('/home');
+          }
         }
       } else {
         _showError(result.error ?? 'Apple sign-in failed');

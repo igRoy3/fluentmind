@@ -229,7 +229,7 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Text(
-              'Your personal speaking coach that proves you\'re getting better every day.',
+              'Your brain training companion! Sharpen your focus with fun games, expand your vocabulary, and master confident speaking.',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: isDark
                     ? AppColors.textSecondaryDark
@@ -240,7 +240,7 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
           ).animate().fadeIn(delay: 400.ms),
           const SizedBox(height: 48),
           _PrimaryButton(
-            text: 'Let\'s Begin',
+            text: 'Let\'s Get Started',
             onPressed: _nextStep,
           ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2),
         ],
@@ -330,7 +330,7 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
         children: [
           const SizedBox(height: 40),
           Text(
-            'What\'s your main goal?',
+            'What would you like to improve?',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
               color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
@@ -338,7 +338,7 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
           ).animate().fadeIn(),
           const SizedBox(height: 8),
           Text(
-            'We\'ll focus on what matters most to you.',
+            'We\'ll customize your experience based on your goals.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               color: isDark
                   ? AppColors.textSecondaryDark
@@ -475,7 +475,7 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
         children: [
           const SizedBox(height: 40),
           Text(
-            'Record your "Day 1" voice',
+            'Record Your Starting Point',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
               color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
@@ -483,7 +483,7 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
           ).animate().fadeIn(),
           const SizedBox(height: 8),
           Text(
-            'This 30-second recording becomes your baseline. You\'ll compare future recordings to see how far you\'ve come!',
+            'This quick recording becomes your baseline. Compare future recordings to see your amazing progress!',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               color: isDark
                   ? AppColors.textSecondaryDark

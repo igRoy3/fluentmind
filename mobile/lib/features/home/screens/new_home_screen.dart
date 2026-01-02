@@ -67,7 +67,6 @@ class _NewHomeScreenState extends ConsumerState<NewHomeScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final greeting = ref.watch(greetingProvider);
     final dailyFocus = ref.watch(dailyFocusProvider);
-    final stats = ref.watch(journeyStatsProvider);
     final todaySession = ref.watch(todaySessionProvider);
     final decayingWords = ref.watch(decayingWordsProvider);
     final profile = ref.watch(userProfileProvider);
@@ -146,18 +145,16 @@ class _NewHomeScreenState extends ConsumerState<NewHomeScreen> {
                 ),
               ),
 
-              // Streak & Quick Stats
+              // Brain Games Featured Card
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
                     vertical: 8,
                   ),
-                  child: stats.when(
-                    data: (data) =>
-                        StatsOverviewRow(stats: data, isDark: isDark),
-                    loading: () => _shimmerStatsRow(isDark),
-                    error: (_, __) => const SizedBox.shrink(),
+                  child: BrainGamesCard(
+                    isDark: isDark,
+                    onTap: () => context.go('/games'),
                   ),
                 ).animate().fadeIn(delay: 100.ms, duration: 400.ms),
               ),
@@ -297,24 +294,6 @@ class _NewHomeScreenState extends ConsumerState<NewHomeScreen> {
     );
   }
 
-  Widget _shimmerStatsRow(bool isDark) {
-    return Row(
-      children: List.generate(
-        3,
-        (index) => Expanded(
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            height: 70,
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.shimmerBaseDark : AppColors.shimmerBase,
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _shimmerFocusCard(bool isDark) {
     return Container(
       height: 140,
@@ -336,109 +315,109 @@ class _NewHomeScreenState extends ConsumerState<NewHomeScreen> {
   }
 }
 
-// Stats Overview Row Widget
-class StatsOverviewRow extends StatelessWidget {
-  final UserJourneyStats stats;
+// Brain Games Featured Card - Replaces old stats row
+class BrainGamesCard extends StatelessWidget {
   final bool isDark;
+  final VoidCallback onTap;
 
-  const StatsOverviewRow({
-    super.key,
-    required this.stats,
-    required this.isDark,
-  });
+  const BrainGamesCard({super.key, required this.isDark, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _StatBadge(
-          icon: Icons.local_fire_department_rounded,
-          value: '${stats.currentStreak}',
-          label: 'Day streak',
-          color: stats.currentStreak > 0
-              ? AppColors.accentYellow
-              : AppColors.textHint,
-          isDark: isDark,
-        ),
-        const SizedBox(width: 8),
-        _StatBadge(
-          icon: Icons.menu_book_rounded,
-          value: '${stats.wordsRetained}',
-          label: 'Words',
-          color: AppColors.secondary,
-          isDark: isDark,
-        ),
-        const SizedBox(width: 8),
-        _StatBadge(
-          icon: Icons.mic_rounded,
-          value: '${stats.totalRecordings}',
-          label: 'Recordings',
-          color: AppColors.primary,
-          isDark: isDark,
-        ),
-      ],
-    );
-  }
-}
-
-class _StatBadge extends StatelessWidget {
-  final IconData icon;
-  final String value;
-  final String label;
-  final Color color;
-  final bool isDark;
-
-  const _StatBadge({
-    required this.icon,
-    required this.value,
-    required this.label,
-    required this.color,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
+    return GestureDetector(
+      onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.cardDark : Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          gradient: LinearGradient(
+            colors: [const Color(0xFF6C5CE7), const Color(0xFF8E7CF3)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
-              blurRadius: 10,
+              color: const Color(0xFF6C5CE7).withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(width: 6),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: isDark
-                        ? AppColors.textPrimaryDark
-                        : AppColors.textPrimary,
+            // Icon section
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.psychology_rounded,
+                color: Colors.white,
+                size: 32,
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Text content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'Brain Games',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Text(
+                          '6 Games',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondary,
+                  const SizedBox(height: 4),
+                  Text(
+                    'Train your mind with fun challenges',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 13,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
+            ),
+            // Arrow
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.arrow_forward_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
           ],
         ),

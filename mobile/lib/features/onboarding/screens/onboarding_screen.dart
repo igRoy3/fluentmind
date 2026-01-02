@@ -20,29 +20,41 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   final List<OnboardingPageData> _pages = [
     OnboardingPageData(
-      icon: Icons.mic_rounded,
+      icon: Icons.psychology_rounded,
       iconColor: AppColors.primary,
-      title: 'Speak Naturally',
+      title: 'Fun Brain Games',
       description:
-          'Practice speaking in real conversations. Our AI listens and understands your unique voice.',
+          'Challenge yourself with engaging games designed to sharpen your focus, boost memory, and improve cognitive skills.',
       gradient: AppColors.primaryGradient,
     ),
     OnboardingPageData(
-      icon: Icons.auto_awesome_rounded,
+      icon: Icons.menu_book_rounded,
       iconColor: AppColors.secondary,
-      title: 'Instant AI Feedback',
+      title: 'Build Your Vocabulary',
       description:
-          'Get personalized feedback on pronunciation, grammar, and fluency in real-time.',
+          'Learn new words every day with smart flashcards, quizzes, and contextual examples that make learning stick.',
       gradient: AppColors.accentGradient,
     ),
     OnboardingPageData(
-      icon: Icons.trending_up_rounded,
+      icon: Icons.mic_rounded,
       iconColor: AppColors.accentGreen,
-      title: 'Track Your Progress',
+      title: 'Practice Self-Speaking',
       description:
-          'Watch your skills improve over time with detailed analytics and achievement tracking.',
+          'Record your voice, practice speaking confidently, and track your improvement over time with personalized feedback.',
       gradient: LinearGradient(
         colors: [AppColors.accentGreen, const Color(0xFF55EFC4)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+    ),
+    OnboardingPageData(
+      icon: Icons.shield_rounded,
+      iconColor: const Color(0xFF6C5CE7),
+      title: 'Your Privacy Matters',
+      description:
+          'Your data stays with you. All recordings and progress are stored securely on your device with end-to-end encryption. We never share your personal information.',
+      gradient: const LinearGradient(
+        colors: [Color(0xFF6C5CE7), Color(0xFFA29BFE)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
