@@ -123,7 +123,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
                   // Tagline
                   Text(
-                        'Master any language with AI',
+                        'Sharpen Your Focus. Speak Your Mind.',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: Colors.white.withOpacity(0.9),
                         ),

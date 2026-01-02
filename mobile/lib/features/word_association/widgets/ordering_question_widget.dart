@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -28,14 +30,40 @@ class _OrderingQuestionWidgetState extends State<OrderingQuestionWidget> {
   @override
   void initState() {
     super.initState();
-    _orderedWords = List.from(widget.question.options ?? []);
+    _orderedWords = _getShuffledOptions();
+  }
+
+  /// Shuffle options to ensure they're not in the correct order by default
+  List<String> _getShuffledOptions() {
+    final options = List<String>.from(widget.question.options ?? []);
+    final correctOrder = widget.question.correctOrder ?? [];
+
+    // Keep shuffling until the order is different from the correct order
+    final random = Random();
+    int attempts = 0;
+    do {
+      options.shuffle(random);
+      attempts++;
+      // Prevent infinite loop if there's only 1-2 options
+      if (attempts > 10) break;
+    } while (_listsEqual(options, correctOrder) && options.length > 2);
+
+    return options;
+  }
+
+  bool _listsEqual(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   @override
   void didUpdateWidget(OrderingQuestionWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.question.id != widget.question.id) {
-      _orderedWords = List.from(widget.question.options ?? []);
+      _orderedWords = _getShuffledOptions();
     }
   }
 

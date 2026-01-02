@@ -7,7 +7,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/models/user_journey.dart';
 import '../../../core/services/user_journey_service.dart';
 
-final recentWordsProvider = FutureProvider<List<LearnedWord>>((ref) async {
+final recentWordsProvider = FutureProvider.autoDispose<List<LearnedWord>>((
+  ref,
+) async {
   final service = ref.watch(userJourneyServiceProvider);
   final words = await service.getLearnedWords();
   // Get 5 most recent words
@@ -16,11 +18,15 @@ final recentWordsProvider = FutureProvider<List<LearnedWord>>((ref) async {
   return sorted.take(5).toList();
 });
 
-final vocabularyStatsProvider = FutureProvider<Map<String, int>>((ref) async {
+final vocabularyStatsProvider = FutureProvider.autoDispose<Map<String, int>>((
+  ref,
+) async {
   final service = ref.watch(userJourneyServiceProvider);
   final words = await service.getLearnedWords();
   final retained = words.where((w) => w.masteryLevel >= 3).length;
-  final needsReview = words.where((w) => w.isDecaying).length;
+  final needsReview = words
+      .where((w) => w.isDecaying || w.nextReviewAt.isBefore(DateTime.now()))
+      .length;
   return {
     'total': words.length,
     'retained': retained,

@@ -692,6 +692,42 @@ class UserJourneyService {
   }
 
   // ==================
+  // Weekly Activity
+  // ==================
+
+  /// Get activity status for each day of the current week (Mon-Sun)
+  /// Returns a list of 7 booleans, index 0 = Monday
+  Future<List<bool>> getWeeklyActivity() async {
+    final sessions = await getDailySessions();
+    final now = DateTime.now();
+
+    // Get the Monday of the current week
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    final mondayStart = DateTime(monday.year, monday.month, monday.day);
+
+    // Create a list of 7 days
+    final List<bool> weekActivity = List.filled(7, false);
+
+    for (final session in sessions) {
+      // Check if session is in current week and has activity
+      if (session.isComplete || session.durationMinutes > 0) {
+        final sessionDate = DateTime(
+          session.date.year,
+          session.date.month,
+          session.date.day,
+        );
+        final daysSinceMonday = sessionDate.difference(mondayStart).inDays;
+
+        if (daysSinceMonday >= 0 && daysSinceMonday < 7) {
+          weekActivity[daysSinceMonday] = true;
+        }
+      }
+    }
+
+    return weekActivity;
+  }
+
+  // ==================
   // Clear All Data (for testing)
   // ==================
 

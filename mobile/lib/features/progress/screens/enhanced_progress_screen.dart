@@ -42,6 +42,14 @@ final progressAchievementsProvider =
       return service.getAchievements();
     });
 
+// Weekly activity provider
+final weeklyActivityProvider = FutureProvider.autoDispose<List<bool>>((
+  ref,
+) async {
+  final service = ref.watch(userJourneyServiceProvider);
+  return service.getWeeklyActivity();
+});
+
 class EnhancedProgressScreen extends ConsumerWidget {
   const EnhancedProgressScreen({super.key});
 
@@ -194,10 +202,31 @@ class EnhancedProgressScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: stats.when(
-                data: (s) => _WeeklyActivityCard(stats: s, isDark: isDark),
-                loading: () => _ShimmerCard(height: 180, isDark: isDark),
-                error: (_, __) => const SizedBox.shrink(),
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final weekActivity = ref.watch(weeklyActivityProvider);
+                  return stats.when(
+                    data: (s) => weekActivity.when(
+                      data: (activity) => _WeeklyActivityCard(
+                        stats: s,
+                        weeklyActivity: activity,
+                        isDark: isDark,
+                      ),
+                      loading: () => _WeeklyActivityCard(
+                        stats: s,
+                        weeklyActivity: null,
+                        isDark: isDark,
+                      ),
+                      error: (_, __) => _WeeklyActivityCard(
+                        stats: s,
+                        weeklyActivity: null,
+                        isDark: isDark,
+                      ),
+                    ),
+                    loading: () => _ShimmerCard(height: 180, isDark: isDark),
+                    error: (_, __) => const SizedBox.shrink(),
+                  );
+                },
               ),
             ).animate().fadeIn(delay: 500.ms, duration: 400.ms),
           ),
@@ -767,14 +796,19 @@ class _AchievementBadge extends StatelessWidget {
 // Weekly Activity Card
 class _WeeklyActivityCard extends StatelessWidget {
   final UserJourneyStats stats;
+  final List<bool>? weeklyActivity;
   final bool isDark;
 
-  const _WeeklyActivityCard({required this.stats, required this.isDark});
+  const _WeeklyActivityCard({
+    required this.stats,
+    required this.weeklyActivity,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
     final days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-    final today = DateTime.now().weekday - 1; // 0-indexed
+    final today = DateTime.now().weekday - 1; // 0-indexed (0 = Monday)
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -805,15 +839,13 @@ class _WeeklyActivityCard extends StatelessWidget {
             children: List.generate(7, (index) {
               final isToday = index == today;
               final isPast = index < today;
-              // Calculate if day had activity based on streak
-              // If streak is 3 and today is Wed (index 2), then Mon, Tue, Wed had activity
-              final streakStartIndex = today - stats.currentStreak + 1;
-              final hasActivity =
-                  isPast &&
-                  stats.currentStreak > 0 &&
-                  index >= streakStartIndex;
-              final missedDay =
-                  isPast && !hasActivity && stats.currentStreak < today;
+              final isFuture = index > today;
+
+              // Use actual weekly activity data if available
+              final hasActivity = weeklyActivity != null
+                  ? weeklyActivity![index]
+                  : false;
+              final missedDay = isPast && !hasActivity;
 
               return Column(
                 children: [
@@ -821,7 +853,7 @@ class _WeeklyActivityCard extends StatelessWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: hasActivity || (isToday && stats.currentStreak > 0)
+                      color: hasActivity
                           ? AppColors.success
                           : missedDay
                           ? AppColors.error.withOpacity(0.1)
@@ -841,7 +873,7 @@ class _WeeklyActivityCard extends StatelessWidget {
                           : null,
                     ),
                     child: Center(
-                      child: hasActivity || (isToday && stats.currentStreak > 0)
+                      child: hasActivity
                           ? const Icon(
                               Icons.check_rounded,
                               color: Colors.white,
@@ -852,6 +884,14 @@ class _WeeklyActivityCard extends StatelessWidget {
                               Icons.close_rounded,
                               color: AppColors.error.withOpacity(0.5),
                               size: 16,
+                            )
+                          : isFuture
+                          ? Icon(
+                              Icons.circle_outlined,
+                              color: isDark
+                                  ? AppColors.textHintDark
+                                  : AppColors.textHint,
+                              size: 12,
                             )
                           : null,
                     ),
@@ -866,6 +906,8 @@ class _WeeklyActivityCard extends StatelessWidget {
                           ? AppColors.primary
                           : missedDay
                           ? AppColors.error.withOpacity(0.7)
+                          : hasActivity
+                          ? AppColors.success
                           : (isDark
                                 ? AppColors.textSecondaryDark
                                 : AppColors.textSecondary),

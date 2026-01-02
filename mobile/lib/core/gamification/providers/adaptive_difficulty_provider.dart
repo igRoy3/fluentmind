@@ -1,5 +1,6 @@
 /// Adaptive Difficulty Engine for FluentMind
 /// Automatically adjusts game difficulty based on real user performance
+library;
 
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -200,10 +201,11 @@ class GamePerformanceTracker
   }
 
   static const _uuid = Uuid();
+  static const String _performanceStorageKey = 'game_performance_stats';
 
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString(AdaptiveDifficultyEngine._storageKey);
+    final data = prefs.getString(_performanceStorageKey);
     if (data != null) {
       final Map<String, dynamic> decoded = jsonDecode(data);
       final Map<String, GamePerformanceStats> stats = {};
@@ -253,10 +255,12 @@ class GamePerformanceTracker
       };
     });
 
-    await prefs.setString(
-      AdaptiveDifficultyEngine._storageKey,
-      jsonEncode(data),
-    );
+    await prefs.setString(_performanceStorageKey, jsonEncode(data));
+  }
+
+  /// Reload data from storage (useful after app restart)
+  Future<void> reload() async {
+    await _loadData();
   }
 
   /// Start a new game session

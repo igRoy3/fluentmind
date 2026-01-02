@@ -13,34 +13,43 @@ import '../widgets/daily_focus_card.dart';
 import '../widgets/vocabulary_preview.dart';
 import '../widgets/quick_actions_grid.dart';
 
-// Providers for home screen data
-final greetingProvider = FutureProvider<String>((ref) async {
+// Providers for home screen data - autoDispose ensures fresh data each visit
+final greetingProvider = FutureProvider.autoDispose<String>((ref) async {
   final service = ref.watch(userJourneyServiceProvider);
   return service.getPersonalizedGreeting();
 });
 
-final dailyFocusProvider = FutureProvider<DailyFocus>((ref) async {
+final dailyFocusProvider = FutureProvider.autoDispose<DailyFocus>((ref) async {
   final service = ref.watch(userJourneyServiceProvider);
   return service.generateDailyFocus();
 });
 
-final journeyStatsProvider = FutureProvider<UserJourneyStats>((ref) async {
+final journeyStatsProvider = FutureProvider.autoDispose<UserJourneyStats>((
+  ref,
+) async {
   final service = ref.watch(userJourneyServiceProvider);
+  // Recalculate stats from actual data to ensure accuracy
   return service.getJourneyStats();
 });
 
-final todaySessionProvider = FutureProvider<DailySession>((ref) async {
+final todaySessionProvider = FutureProvider.autoDispose<DailySession>((
+  ref,
+) async {
   final service = ref.watch(userJourneyServiceProvider);
   return service.getTodaySession();
 });
 
-final decayingWordsProvider = FutureProvider<List<LearnedWord>>((ref) async {
+final decayingWordsProvider = FutureProvider.autoDispose<List<LearnedWord>>((
+  ref,
+) async {
   final service = ref.watch(userJourneyServiceProvider);
   await service.markDecayingWords();
   return service.getDecayingWords();
 });
 
-final userProfileProvider = FutureProvider<UserProfile?>((ref) async {
+final userProfileProvider = FutureProvider.autoDispose<UserProfile?>((
+  ref,
+) async {
   final service = ref.watch(userJourneyServiceProvider);
   return service.getUserProfile();
 });
