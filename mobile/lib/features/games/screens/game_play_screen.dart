@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/gamification/models/game_difficulty_models.dart';
+import '../../../core/gamification/providers/adaptive_difficulty_provider.dart';
 import '../widgets/game_instructions_dialog.dart';
 
 class GamePlayScreen extends ConsumerStatefulWidget {
@@ -35,6 +36,10 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
   int _combo = 0;
   int _maxCombo = 0;
 
+  // Session tracking
+  DateTime? _gameStartTime;
+  int _correctAnswers = 0;
+
   // Difficulty settings
   GameDifficulty _difficulty = GameDifficulty.intermediate;
 
@@ -48,10 +53,14 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
   int _num2 = 0;
   String _operator = '+';
   int _correctAnswer = 0;
-  List<int> _options = [];
+  String _userAnswer = ''; // User typed answer
   bool _showingFeedback = false;
-  int? _selectedAnswer;
   bool? _lastAnswerCorrect;
+
+  // Math Speed Timer
+  Timer? _mathTimer;
+  int _mathTimeLeft = 0;
+  int _mathTimeTotal = 0; // Total time for progress calculation
 
   // Memory Match game variables
   List<int> _cards = [];
@@ -199,6 +208,14 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
+
+    // Reset shake controller when animation completes to prevent residual movement
+    _shakeController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _shakeController.reset();
+      }
+    });
+
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -265,6 +282,10 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
   }
 
   void _initializeGame() {
+    // Track when game started for session recording
+    _gameStartTime = DateTime.now();
+    _correctAnswers = 0;
+
     switch (widget.gameId) {
       case 'math_speed':
         _generateMathQuestion();
@@ -304,6 +325,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
     HapticFeedback.lightImpact();
     setState(() {
       _combo++;
+      _correctAnswers++; // Track correct answers for session
       if (_combo > _maxCombo) _maxCombo = _combo;
 
       // Combo multiplier
@@ -320,14 +342,48 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
     setState(() {
       _gameOver = true;
     });
+
+    // Update old provider (for backwards compatibility)
     ref
         .read(brainGamesProvider.notifier)
         .updateHighScore(widget.gameId, _score);
+
+    // Record session with adaptive difficulty provider for persistence
+    _recordGameSession();
+  }
+
+  Future<void> _recordGameSession() async {
+    final endTime = DateTime.now();
+    final duration = _gameStartTime != null
+        ? endTime.difference(_gameStartTime!)
+        : const Duration(minutes: 1);
+
+    // Calculate wrong answers
+    final wrongAnswers = _maxLives - _currentLives;
+
+    // Create a completed session
+    final session = GameSession(
+      id: '${widget.gameId}_${endTime.millisecondsSinceEpoch}',
+      gameId: widget.gameId,
+      difficulty: _difficulty,
+      startedAt: _gameStartTime ?? endTime.subtract(duration),
+      endedAt: endTime,
+      score: _score,
+      questionsAnswered: _currentQuestion,
+      correctAnswers: _correctAnswers,
+      wrongAnswers: wrongAnswers,
+      maxCombo: _maxCombo,
+      completionTime: duration,
+    );
+
+    // Save to persistent storage
+    await ref.read(gamePerformanceProvider.notifier).completeSession(session);
   }
 
   // ==================== MATH SPEED ====================
   void _generateMathQuestion() {
     final random = Random();
+    _mathTimer?.cancel(); // Cancel any existing timer
 
     switch (_difficulty) {
       case GameDifficulty.beginner:
@@ -342,18 +398,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
           _num2 = random.nextInt(_num1 - 1) + 1; // Always positive result
           _correctAnswer = _num1 - _num2;
         }
-        // Easy wrong answers (spread out)
-        _options = [_correctAnswer];
-        while (_options.length < 4) {
-          int wrong =
-              _correctAnswer +
-              (random.nextInt(5) + 1) * (random.nextBool() ? 1 : -1);
-          if (wrong > 0 &&
-              wrong != _correctAnswer &&
-              !_options.contains(wrong)) {
-            _options.add(wrong);
-          }
-        }
+        _mathTimeTotal = 15; // 15 seconds for beginner
         break;
 
       case GameDifficulty.intermediate:
@@ -377,22 +422,11 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
             _correctAnswer = _num1 * _num2;
             break;
         }
-        // Medium wrong answers (closer together)
-        _options = [_correctAnswer];
-        while (_options.length < 4) {
-          int wrong =
-              _correctAnswer +
-              (random.nextInt(8) + 1) * (random.nextBool() ? 1 : -1);
-          if (wrong > 0 &&
-              wrong != _correctAnswer &&
-              !_options.contains(wrong)) {
-            _options.add(wrong);
-          }
-        }
+        _mathTimeTotal = 10; // 10 seconds for intermediate
         break;
 
       case GameDifficulty.advanced:
-        // Large numbers, all 4 operations, tricky wrong answers
+        // Large numbers, all 4 operations
         final advOps = ['+', '-', '×', '÷'];
         _operator = advOps[random.nextInt(advOps.length)];
         switch (_operator) {
@@ -418,55 +452,106 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
             _num1 = _num2 * _correctAnswer;
             break;
         }
-        // Tricky wrong answers (very close to correct)
-        _options = [_correctAnswer];
-        while (_options.length < 4) {
-          int wrong =
-              _correctAnswer +
-              (random.nextInt(4) + 1) * (random.nextBool() ? 1 : -1);
-          // Add transposition errors for multiplication
-          if (_operator == '×' && random.nextInt(3) == 0) {
-            wrong = _num1 * (_num2 + 1); // Common multiplication mistake
-          }
-          if (wrong > 0 &&
-              wrong != _correctAnswer &&
-              !_options.contains(wrong)) {
-            _options.add(wrong);
-          }
-        }
+        _mathTimeTotal = 7; // 7 seconds for advanced
         break;
     }
-    _options.shuffle();
 
     setState(() {
-      _selectedAnswer = null;
+      _userAnswer = '';
       _lastAnswerCorrect = null;
       _showingFeedback = false;
+      _mathTimeLeft = _mathTimeTotal;
+    });
+
+    // Start the timer
+    _startMathTimer();
+  }
+
+  void _startMathTimer() {
+    _mathTimer?.cancel();
+    _mathTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted || _gameOver || _showingFeedback) {
+        timer.cancel();
+        return;
+      }
+
+      setState(() {
+        _mathTimeLeft--;
+      });
+
+      // Time's up!
+      if (_mathTimeLeft <= 0) {
+        timer.cancel();
+        _onMathTimeUp();
+      }
     });
   }
 
-  void _checkMathAnswer(int answer) {
-    if (_showingFeedback) return;
+  void _onMathTimeUp() {
+    if (_showingFeedback || _gameOver) return;
 
+    HapticFeedback.heavyImpact();
     setState(() {
-      _selectedAnswer = answer;
       _showingFeedback = true;
-      _lastAnswerCorrect = answer == _correctAnswer;
+      _lastAnswerCorrect = false;
+    });
+    _loseLife();
+
+    Future.delayed(const Duration(milliseconds: 1200), () {
+      if (mounted && !_gameOver) {
+        _generateMathQuestion();
+      }
+    });
+  }
+
+  void _onNumberPadTap(String value) {
+    if (_showingFeedback || _gameOver) return;
+
+    HapticFeedback.selectionClick();
+    setState(() {
+      if (_userAnswer.length < 6) {
+        // Max 6 digits
+        _userAnswer += value;
+      }
+    });
+  }
+
+  void _onBackspaceTap() {
+    if (_showingFeedback || _gameOver || _userAnswer.isEmpty) return;
+
+    HapticFeedback.lightImpact();
+    setState(() {
+      _userAnswer = _userAnswer.substring(0, _userAnswer.length - 1);
+    });
+  }
+
+  void _onSubmitAnswer() {
+    if (_showingFeedback || _gameOver || _userAnswer.isEmpty) return;
+
+    _mathTimer?.cancel();
+    final answer = int.tryParse(_userAnswer) ?? -1;
+    final isCorrect = answer == _correctAnswer;
+
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _showingFeedback = true;
+      _lastAnswerCorrect = isCorrect;
     });
 
-    if (answer == _correctAnswer) {
-      _gainPoints(
-        _difficulty == GameDifficulty.advanced
-            ? 25
-            : _difficulty == GameDifficulty.intermediate
-            ? 15
-            : 10,
-      );
+    if (isCorrect) {
+      // Bonus points for time remaining
+      int basePoints = _difficulty == GameDifficulty.advanced
+          ? 25
+          : _difficulty == GameDifficulty.intermediate
+          ? 15
+          : 10;
+      int timeBonus = (_mathTimeLeft * 2); // 2 points per second remaining
+      _gainPoints(basePoints + timeBonus);
     } else {
       _loseLife();
     }
 
-    Future.delayed(const Duration(milliseconds: 800), () {
+    Future.delayed(const Duration(milliseconds: 1000), () {
       if (mounted && !_gameOver) {
         _generateMathQuestion();
       }
@@ -920,6 +1005,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
 
   @override
   void dispose() {
+    _mathTimer?.cancel();
     _shakeController.dispose();
     _pulseController.dispose();
     _answerController.dispose();
@@ -961,11 +1047,15 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
           child: AnimatedBuilder(
             animation: _shakeAnimation,
             builder: (context, child) {
+              // Only apply shake offset when animation is actually running
+              final shakeValue = _shakeAnimation.value;
+              if (shakeValue == 0) {
+                return child!;
+              }
+              // Use sin function for smooth left-right oscillation instead of random
+              final offset = shakeValue * sin(_shakeController.value * pi * 8);
               return Transform.translate(
-                offset: Offset(
-                  _shakeAnimation.value * (Random().nextBool() ? 1 : -1),
-                  0,
-                ),
+                offset: Offset(offset, 0),
                 child: child,
               );
             },
@@ -1118,216 +1208,417 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
   // ==================== MATH SPEED UI ====================
   Widget _buildMathGame() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final timerProgress = _mathTimeTotal > 0
+        ? _mathTimeLeft / _mathTimeTotal
+        : 0.0;
+    final isLowTime = _mathTimeLeft <= 3;
 
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         children: [
-          // Question counter
-          Text(
-            'Question ${_currentQuestion + 1}',
-            style: TextStyle(
-              fontSize: 14,
-              color: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondary,
-            ),
-          ),
+          // Timer Bar with animated progress
+          _buildTimerBar(isDark, timerProgress, isLowTime),
 
-          const Spacer(),
+          const SizedBox(height: 12),
 
-          // Math equation card - POLISHED
-          Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  vertical: 48,
-                  horizontal: 24,
-                ),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: isDark
-                        ? [AppColors.cardDark, AppColors.surfaceDark]
-                        : [Colors.white, Colors.grey.shade50],
-                  ),
-                  borderRadius: BorderRadius.circular(32),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withOpacity(0.1),
-                      blurRadius: 30,
-                      offset: const Offset(0, 15),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: isDark ? Colors.white10 : Colors.grey.shade200,
-                    width: 1,
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    // Numbers and operator
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildMathNumber(_num1, isDark),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Center(
-                              child: Text(
-                                _operator,
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        _buildMathNumber(_num2, isDark),
-                      ],
-                    ),
+          // Math equation card - Compact
+          Expanded(flex: 3, child: _buildMathEquationCard(isDark)),
 
-                    const SizedBox(height: 24),
+          const SizedBox(height: 12),
 
-                    // Equals line
-                    Container(
-                      width: 200,
-                      height: 3,
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.white24 : Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
+          // Answer display box
+          _buildAnswerDisplay(isDark),
 
-                    const SizedBox(height: 24),
+          const SizedBox(height: 12),
 
-                    // Question mark
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: AppColors.primary.withOpacity(0.3),
-                          width: 2,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '?',
-                          style: TextStyle(
-                            fontSize: 40,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-              .animate()
-              .fadeIn(duration: 300.ms)
-              .scale(begin: const Offset(0.95, 0.95)),
-
-          const Spacer(),
-
-          // Answer options - 2x2 Grid
-          GridView.count(
-            shrinkWrap: true,
-            crossAxisCount: 2,
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            childAspectRatio: 2.2,
-            physics: const NeverScrollableScrollPhysics(),
-            children: _options.map((option) {
-              final isSelected = _selectedAnswer == option;
-              final isCorrect = option == _correctAnswer;
-              Color bgColor;
-              Color textColor;
-
-              if (_showingFeedback && isSelected) {
-                bgColor = isCorrect ? Colors.green : Colors.red;
-                textColor = Colors.white;
-              } else if (_showingFeedback && isCorrect) {
-                bgColor = Colors.green.withOpacity(0.2);
-                textColor = Colors.green;
-              } else {
-                bgColor = isDark ? AppColors.cardDark : Colors.white;
-                textColor = isDark
-                    ? AppColors.textPrimaryDark
-                    : AppColors.textPrimary;
-              }
-
-              return GestureDetector(
-                onTap: () => _checkMathAnswer(option),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: (_showingFeedback && isSelected && isCorrect)
-                            ? Colors.green.withOpacity(0.3)
-                            : Colors.black.withOpacity(isDark ? 0.2 : 0.08),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                    border: Border.all(
-                      color: (_showingFeedback && isSelected)
-                          ? (isCorrect ? Colors.green : Colors.red)
-                          : (isDark ? Colors.white10 : Colors.grey.shade200),
-                      width: 2,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '$option',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-
-          const SizedBox(height: 24),
+          // Number pad
+          Expanded(flex: 4, child: _buildNumberPad(isDark)),
         ],
       ),
     );
   }
 
-  Widget _buildMathNumber(int number, bool isDark) {
+  Widget _buildTimerBar(bool isDark, double progress, bool isLowTime) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(16),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.timer_outlined,
+                size: 18,
+                color: isLowTime
+                    ? Colors.red
+                    : (isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondary),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${_mathTimeLeft}s',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: isLowTime ? Colors.red : AppColors.primary,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'Q${_currentQuestion + 1}',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: progress,
+              backgroundColor: isDark ? Colors.white12 : Colors.grey.shade200,
+              valueColor: AlwaysStoppedAnimation(
+                isLowTime
+                    ? Colors.red
+                    : (progress > 0.5 ? Colors.green : Colors.orange),
+              ),
+              minHeight: 8,
+            ),
+          ).animate(target: isLowTime ? 1 : 0).shake(hz: 4, duration: 200.ms),
+        ],
       ),
-      child: Text(
-        '$number',
-        style: TextStyle(
-          fontSize: 36,
-          fontWeight: FontWeight.bold,
-          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+    );
+  }
+
+  Widget _buildMathEquationCard(bool isDark) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: _showingFeedback
+              ? (_lastAnswerCorrect == true
+                    ? [Colors.green.shade400, Colors.green.shade600]
+                    : [Colors.red.shade400, Colors.red.shade600])
+              : (isDark
+                    ? [AppColors.cardDark, AppColors.surfaceDark]
+                    : [Colors.white, Colors.grey.shade50]),
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: _showingFeedback
+                ? (_lastAnswerCorrect == true
+                      ? Colors.green.withOpacity(0.3)
+                      : Colors.red.withOpacity(0.3))
+                : AppColors.primary.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Equation row
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '$_num1',
+                  style: TextStyle(
+                    fontSize: 42,
+                    fontWeight: FontWeight.bold,
+                    color: _showingFeedback
+                        ? Colors.white
+                        : (isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimary),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: _showingFeedback
+                          ? Colors.white.withOpacity(0.2)
+                          : AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        _operator,
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: _showingFeedback
+                              ? Colors.white
+                              : AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Text(
+                  '$_num2',
+                  style: TextStyle(
+                    fontSize: 42,
+                    fontWeight: FontWeight.bold,
+                    color: _showingFeedback
+                        ? Colors.white
+                        : (isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimary),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    '=',
+                    style: TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      color: _showingFeedback
+                          ? Colors.white
+                          : (isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondary),
+                    ),
+                  ),
+                ),
+                Text(
+                  '?',
+                  style: TextStyle(
+                    fontSize: 42,
+                    fontWeight: FontWeight.bold,
+                    color: _showingFeedback ? Colors.white : AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Feedback message
+          if (_showingFeedback) ...[
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  _lastAnswerCorrect == true
+                      ? Icons.check_circle
+                      : Icons.cancel,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _lastAnswerCorrect == true
+                      ? 'Correct! +${(_mathTimeLeft * 2)} time bonus'
+                      : 'Answer: $_correctAnswer',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnswerDisplay(bool isDark) {
+    return Container(
+      width: double.infinity,
+      height: 70,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: _userAnswer.isNotEmpty
+              ? AppColors.primary
+              : (isDark ? Colors.white12 : Colors.grey.shade300),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          _userAnswer.isEmpty ? 'Type your answer' : _userAnswer,
+          style: TextStyle(
+            fontSize: _userAnswer.isEmpty ? 18 : 36,
+            fontWeight: _userAnswer.isEmpty ? FontWeight.w400 : FontWeight.bold,
+            color: _userAnswer.isEmpty
+                ? (isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary)
+                : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimary),
+            letterSpacing: _userAnswer.isEmpty ? 0 : 4,
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildNumberPad(bool isDark) {
+    return Column(
+      children: [
+        // Row 1: 1, 2, 3
+        Expanded(child: _buildNumberRow(['1', '2', '3'], isDark)),
+        const SizedBox(height: 8),
+        // Row 2: 4, 5, 6
+        Expanded(child: _buildNumberRow(['4', '5', '6'], isDark)),
+        const SizedBox(height: 8),
+        // Row 3: 7, 8, 9
+        Expanded(child: _buildNumberRow(['7', '8', '9'], isDark)),
+        const SizedBox(height: 8),
+        // Row 4: Backspace, 0, Submit
+        Expanded(child: _buildBottomRow(isDark)),
+      ],
+    );
+  }
+
+  Widget _buildNumberRow(List<String> numbers, bool isDark) {
+    return Row(
+      children: numbers.map((num) {
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: _buildNumberButton(num, isDark),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildNumberButton(String number, bool isDark) {
+    return GestureDetector(
+      onTap: () => _onNumberPadTap(number),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.cardDark : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            number,
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomRow(bool isDark) {
+    return Row(
+      children: [
+        // Backspace button
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: GestureDetector(
+              onTap: _onBackspaceTap,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.orange.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.backspace_outlined,
+                    size: 28,
+                    color: Colors.orange.shade700,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        // 0 button
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: _buildNumberButton('0', isDark),
+          ),
+        ),
+        // Submit button
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: GestureDetector(
+              onTap: _onSubmitAnswer,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: _userAnswer.isNotEmpty
+                      ? const LinearGradient(
+                          colors: [Colors.green, Colors.teal],
+                        )
+                      : null,
+                  color: _userAnswer.isEmpty
+                      ? (isDark ? AppColors.surfaceDark : Colors.grey.shade200)
+                      : null,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    if (_userAnswer.isNotEmpty)
+                      BoxShadow(
+                        color: Colors.green.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.check_rounded,
+                    size: 36,
+                    color: _userAnswer.isNotEmpty
+                        ? Colors.white
+                        : (isDark ? AppColors.textSecondaryDark : Colors.grey),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -2092,6 +2383,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                                   _currentLives = _maxLives;
                                   _combo = 0;
                                   _maxCombo = 0;
+                                  _correctAnswers = 0;
                                   _gameOver = false;
                                 });
                                 _initializeGame();

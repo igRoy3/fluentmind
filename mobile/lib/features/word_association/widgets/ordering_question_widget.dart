@@ -192,13 +192,14 @@ class _OrderingQuestionWidgetState extends State<OrderingQuestionWidget> {
             child: ReorderableListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              buildDefaultDragHandles: !widget.isAnswered,
+              buildDefaultDragHandles: false, // We'll add custom drag handles
               itemCount: _orderedWords.length,
               onReorder: _onReorder,
               proxyDecorator: (child, index, animation) {
                 return Material(
-                  elevation: 4,
+                  elevation: 8,
                   borderRadius: BorderRadius.circular(14),
+                  color: Colors.transparent,
                   child: child,
                 );
               },
@@ -231,95 +232,105 @@ class _OrderingQuestionWidgetState extends State<OrderingQuestionWidget> {
                       : AppColors.textPrimary;
                 }
 
-                return Container(
+                return Material(
                   key: ValueKey(wordText),
-                  margin: const EdgeInsets.all(8),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: backgroundColor,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: borderColor, width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(
-                            widget.isDark ? 0.15 : 0.05,
+                  color: Colors.transparent,
+                  child: Container(
+                    margin: const EdgeInsets.all(8),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: backgroundColor,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: borderColor, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(
+                              widget.isDark ? 0.15 : 0.05,
+                            ),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
                           ),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        // Position number
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: widget.isAnswered
-                                ? (isCorrect
-                                      ? AppColors.success
-                                      : AppColors.error)
-                                : _getIntensityColor(
-                                    index,
-                                    _orderedWords.length,
-                                  ),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: widget.isAnswered
-                                ? Icon(
-                                    isCorrect ? Icons.check : Icons.close,
-                                    color: Colors.white,
-                                    size: 18,
-                                  )
-                                : Text(
-                                    '${index + 1}',
-                                    style: const TextStyle(
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          // Position number
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: widget.isAnswered
+                                  ? (isCorrect
+                                        ? AppColors.success
+                                        : AppColors.error)
+                                  : _getIntensityColor(
+                                      index,
+                                      _orderedWords.length,
+                                    ),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: widget.isAnswered
+                                  ? Icon(
+                                      isCorrect ? Icons.check : Icons.close,
                                       color: Colors.white,
-                                      fontWeight: FontWeight.bold,
+                                      size: 18,
+                                    )
+                                  : Text(
+                                      '${index + 1}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+
+                          // Word
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  wordText,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: textColor,
+                                  ),
+                                ),
+                                if (widget.isAnswered && !isCorrect)
+                                  Text(
+                                    'Should be #${correctPosition + 1}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.error.withOpacity(0.8),
                                     ),
                                   ),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
 
-                        // Word
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                wordText,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: textColor,
+                          // Custom drag handle with ReorderableDragStartListener
+                          if (!widget.isAnswered)
+                            ReorderableDragStartListener(
+                              index: index,
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                child: Icon(
+                                  Icons.drag_handle_rounded,
+                                  color: widget.isDark
+                                      ? AppColors.textHintDark
+                                      : AppColors.textHint,
+                                  size: 28,
                                 ),
                               ),
-                              if (widget.isAnswered && !isCorrect)
-                                Text(
-                                  'Should be #${correctPosition + 1}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.error.withOpacity(0.8),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-
-                        // Drag handle
-                        if (!widget.isAnswered)
-                          Icon(
-                            Icons.drag_handle_rounded,
-                            color: widget.isDark
-                                ? AppColors.textHintDark
-                                : AppColors.textHint,
-                          ),
-                      ],
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 );
