@@ -4,7 +4,7 @@ class AppColors {
   AppColors._();
 
   // ============================================
-  // LIGHT THEME COLORS
+  // LIGHT THEME COLORS (Refined - Cooler & Softer)
   // ============================================
 
   // Primary Brand Colors
@@ -21,15 +21,15 @@ class AppColors {
   static const Color accentYellow = Color(0xFFFDCB6E); // Yellow
   static const Color accentGreen = Color(0xFF00B894); // Green
 
-  // Background Colors (Light)
-  static const Color background = Color(0xFFF8F9FD);
-  static const Color surface = Colors.white;
-  static const Color surfaceVariant = Color(0xFFF1F3F8);
+  // Background Colors (Light) - Refined with cool tones
+  static const Color background = Color(0xFFF0F4F8); // Cooler blue-gray
+  static const Color surface = Color(0xFFFAFBFC); // Soft off-white
+  static const Color surfaceVariant = Color(0xFFE8EDF2); // Cool gray
 
-  // Text Colors (Light)
-  static const Color textPrimary = Color(0xFF2D3436);
-  static const Color textSecondary = Color(0xFF636E72);
-  static const Color textHint = Color(0xFFB2BEC3);
+  // Text Colors (Light) - Softer contrast
+  static const Color textPrimary = Color(0xFF1A2530); // Deep blue-gray
+  static const Color textSecondary = Color(0xFF5A6978); // Medium blue-gray
+  static const Color textHint = Color(0xFF9BA8B4); // Light blue-gray
   static const Color textOnPrimary = Colors.white;
 
   // Status Colors
@@ -38,12 +38,12 @@ class AppColors {
   static const Color warning = Color(0xFFF39C12);
   static const Color info = Color(0xFF3498DB);
 
-  // Other (Light)
-  static const Color divider = Color(0xFFE8ECF4);
-  static const Color disabled = Color(0xFFDFE6E9);
-  static const Color shimmerBase = Color(0xFFE8ECF4);
-  static const Color shimmerHighlight = Color(0xFFF8F9FD);
-  static const Color card = Colors.white;
+  // Other (Light) - Refined
+  static const Color divider = Color(0xFFDDE4EC);
+  static const Color disabled = Color(0xFFCED6DE);
+  static const Color shimmerBase = Color(0xFFE4EAF0);
+  static const Color shimmerHighlight = Color(0xFFF5F8FA);
+  static const Color card = Color(0xFFFAFBFC); // Matches surface
 
   // ============================================
   // DARK THEME COLORS
