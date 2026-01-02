@@ -89,7 +89,7 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
     await journeyService.setOnboardingComplete(true);
 
     if (mounted) {
-      context.go('/login');
+      context.go('/home');
     }
   }
 
@@ -373,13 +373,13 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
 
   IconData _getGoalIcon(LearningGoal goal) {
     switch (goal) {
-      case LearningGoal.speakConfidently:
-        return Icons.chat_bubble_outline_rounded;
-      case LearningGoal.improveVocabulary:
+      case LearningGoal.expandVocabulary:
         return Icons.menu_book_rounded;
+      case LearningGoal.sharpenFocus:
+        return Icons.lightbulb_rounded;
       case LearningGoal.thinkFaster:
         return Icons.psychology_rounded;
-      case LearningGoal.stopHesitating:
+      case LearningGoal.speakConfidently:
         return Icons.record_voice_over_rounded;
     }
   }

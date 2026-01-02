@@ -3,10 +3,10 @@
 
 /// User's primary learning goal
 enum LearningGoal {
-  speakConfidently('Speak confidently in conversations'),
-  improveVocabulary('Expand vocabulary for exams'),
-  thinkFaster('Think faster in English'),
-  stopHesitating('Stop hesitating when speaking');
+  expandVocabulary('Expand my vocabulary'),
+  sharpenFocus('Sharpen my focus & memory'),
+  thinkFaster('Think faster & smarter'),
+  speakConfidently('Speak more confidently');
 
   final String description;
   const LearningGoal(this.description);
