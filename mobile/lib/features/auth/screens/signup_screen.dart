@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/persistent_auth_service.dart';
+import '../../../core/services/user_journey_service.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -110,11 +111,22 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       if (result.isSuccess && result.user != null) {
         // Mark user as logged in
         await persistentAuthService.markLoggedIn(result.user!.uid);
+
+        // Check if personalized onboarding is needed (should always be for new users)
+        final journeyService = UserJourneyService();
+        final hasCompletedNewOnboarding = await journeyService
+            .isOnboardingComplete();
+
         if (mounted) {
           _showSuccess(
             'Account created! Please check your email to verify your account.',
           );
-          context.go('/home');
+          // New users should always go to onboarding first
+          if (!hasCompletedNewOnboarding) {
+            context.go('/new-onboarding');
+          } else {
+            context.go('/home');
+          }
         }
       } else {
         _showError(result.error ?? 'Sign up failed');

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/user_journey_service.dart';
+import '../../../core/services/vocabulary_session_service.dart';
 
 // Vocabulary word model
 class VocabWord {
@@ -1255,19 +1256,30 @@ class _VocabularyScreenNewState extends ConsumerState<VocabularyScreenNew>
       _streak = 0;
       _bestStreak = 0;
     });
+
+    // Start a vocabulary session with these words
+    ref
+        .read(vocabularySessionProvider.notifier)
+        .startSession(
+          categoryName: category.name,
+          words: sessionWords
+              .map(
+                (w) => {
+                  'word': w.word,
+                  'definition': w.definition,
+                  'example': w.example,
+                  'partOfSpeech': w.partOfSpeech,
+                },
+              )
+              .toList(),
+        );
+
     _setupGameMode();
   }
 
   void _selectGameMode(VocabGameMode mode) {
-    // Re-shuffle words when changing game mode for variety
-    if (_selectedCategory != null) {
-      final shuffledWordsList = List<VocabWord>.from(_selectedCategory!.words)
-        ..shuffle();
-      final sessionWords = shuffledWordsList.take(5).toList();
-      setState(() {
-        _shuffledWords = sessionWords;
-      });
-    }
+    // KEEP THE SAME WORDS across all game modes in a session
+    // Only reset progress counters, not the word list
     setState(() {
       _gameMode = mode;
       _currentWordIndex = 0;
@@ -1329,6 +1341,11 @@ class _VocabularyScreenNewState extends ConsumerState<VocabularyScreenNew>
     });
     _streakController.forward(from: 0);
 
+    // Record flashcard success in session
+    ref
+        .read(vocabularySessionProvider.notifier)
+        .recordFlashcard(currentWord.word, true);
+
     // Save word to persistent storage
     _saveLearnedWord(currentWord);
 
@@ -1351,10 +1368,17 @@ class _VocabularyScreenNewState extends ConsumerState<VocabularyScreenNew>
   }
 
   void _handleFlashcardStudyAgain() {
+    final currentWord = _shuffledWords[_currentWordIndex];
     setState(() {
       _streak = 0;
       _showDefinition = false;
     });
+
+    // Record flashcard failure in session
+    ref
+        .read(vocabularySessionProvider.notifier)
+        .recordFlashcard(currentWord.word, false);
+
     _nextWord();
   }
 
@@ -1380,6 +1404,11 @@ class _VocabularyScreenNewState extends ConsumerState<VocabularyScreenNew>
       }
     });
 
+    // Record quiz result in session
+    ref
+        .read(vocabularySessionProvider.notifier)
+        .recordQuiz(currentWord.word, correct);
+
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted) _nextWord();
     });
@@ -1401,8 +1430,9 @@ class _VocabularyScreenNewState extends ConsumerState<VocabularyScreenNew>
     if (_selectedWordIndex != null && _selectedDefIndex != null) {
       final word = _matchingWords[_selectedWordIndex!];
       final def = _matchingDefinitions[_selectedDefIndex!];
+      final correct = word.definition == def;
 
-      if (word.definition == def) {
+      if (correct) {
         // Match!
         setState(() {
           _matchedWords.add(_selectedWordIndex!);
@@ -1419,6 +1449,11 @@ class _VocabularyScreenNewState extends ConsumerState<VocabularyScreenNew>
       } else {
         _streak = 0;
       }
+
+      // Record matching result in session
+      ref
+          .read(vocabularySessionProvider.notifier)
+          .recordMatching(word.word, correct);
 
       Future.delayed(const Duration(milliseconds: 300), () {
         if (mounted) {
@@ -1459,6 +1494,11 @@ class _VocabularyScreenNewState extends ConsumerState<VocabularyScreenNew>
         _streak = 0;
       }
     });
+
+    // Record spelling result in session
+    ref
+        .read(vocabularySessionProvider.notifier)
+        .recordSpelling(currentWord.word, correct);
 
     if (correct) _streakController.forward(from: 0);
   }

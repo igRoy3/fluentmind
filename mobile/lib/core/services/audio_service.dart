@@ -110,7 +110,31 @@ class AudioService {
 
   Future<void> playRecording([String? path]) async {
     final filePath = path ?? _recordingPath;
-    if (filePath == null) return;
+    if (filePath == null) {
+      throw Exception('No recording path provided');
+    }
+
+    // Check if file exists before attempting to play
+    final file = File(filePath);
+    if (!await file.exists()) {
+      throw Exception('Recording file not found at path: $filePath');
+    }
+
+    // Check file size to ensure it's valid
+    final fileSize = await file.length();
+    if (fileSize == 0) {
+      throw Exception('Recording file is empty');
+    }
+
+    // Stop any current playback first to avoid bad state
+    try {
+      await _player.stop();
+    } catch (e) {
+      // Ignore stop errors
+    }
+
+    // Small delay to ensure player is ready
+    await Future.delayed(const Duration(milliseconds: 100));
 
     await _player.play(DeviceFileSource(filePath));
   }

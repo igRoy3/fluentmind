@@ -6,33 +6,113 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/models/user_journey.dart';
 import '../../../core/services/user_journey_service.dart';
+import '../../../core/services/vocabulary_session_service.dart';
 
-final recentWordsProvider = FutureProvider.autoDispose<List<LearnedWord>>((
-  ref,
-) async {
-  final service = ref.watch(userJourneyServiceProvider);
-  final words = await service.getLearnedWords();
-  // Get 5 most recent words
-  final sorted = List<LearnedWord>.from(words)
-    ..sort((a, b) => b.learnedAt.compareTo(a.learnedAt));
-  return sorted.take(5).toList();
-});
+// Provider for recently learned words with session-based mastery
+final recentWordsWithMasteryProvider =
+    FutureProvider.autoDispose<List<RecentWordWithMastery>>((ref) async {
+      // Get session performance data
+      final sessionService = ref.watch(vocabularySessionProvider.notifier);
+      final recentlyLearned = await sessionService.getRecentlyLearnedWords(
+        limit: 5,
+      );
+
+      // Get basic learned words from journey service
+      final journeyService = ref.watch(userJourneyServiceProvider);
+      final learnedWords = await journeyService.getLearnedWords();
+
+      // Merge session data with learned words
+      final result = <RecentWordWithMastery>[];
+
+      // First, add words with session performance data
+      for (final sessionWord in recentlyLearned) {
+        result.add(
+          RecentWordWithMastery(
+            word: sessionWord.word,
+            definition: sessionWord.definition,
+            masteryPercent: sessionWord.masteryPercent,
+            totalAttempts: sessionWord.totalAttempts,
+          ),
+        );
+      }
+
+      // If we need more words, add from learned words
+      if (result.length < 5) {
+        final addedWords = result.map((r) => r.word).toSet();
+        final sorted = List<LearnedWord>.from(learnedWords)
+          ..sort((a, b) => b.learnedAt.compareTo(a.learnedAt));
+
+        for (final word in sorted) {
+          if (!addedWords.contains(word.word)) {
+            result.add(
+              RecentWordWithMastery(
+                word: word.word,
+                definition: word.definition,
+                masteryPercent: (word.masteryLevel / 5 * 100).round(),
+                totalAttempts: word.reviewCount,
+              ),
+            );
+            addedWords.add(word.word);
+          }
+          if (result.length >= 5) break;
+        }
+      }
+
+      return result;
+    });
+
+// Provider for words needing review (< 100% mastery)
+final wordsNeedingReviewProvider =
+    FutureProvider.autoDispose<List<WordPerformance>>((ref) async {
+      final sessionService = ref.watch(vocabularySessionProvider.notifier);
+      return await sessionService.getWordsNeedingReview();
+    });
 
 final vocabularyStatsProvider = FutureProvider.autoDispose<Map<String, int>>((
   ref,
 ) async {
-  final service = ref.watch(userJourneyServiceProvider);
-  final words = await service.getLearnedWords();
-  final retained = words.where((w) => w.masteryLevel >= 3).length;
-  final needsReview = words
-      .where((w) => w.isDecaying || w.nextReviewAt.isBefore(DateTime.now()))
-      .length;
+  final journeyService = ref.watch(userJourneyServiceProvider);
+  final words = await journeyService.getLearnedWords();
+
+  // Get session performance for more accurate retained count
+  final sessionService = ref.watch(vocabularySessionProvider.notifier);
+  final performance = await sessionService.getCumulativePerformance();
+
+  // Count retained words based on session mastery (100% = retained)
+  int retained = 0;
+  for (final perf in performance.values) {
+    if (perf.masteryPercent == 100) retained++;
+  }
+
+  // Fall back to journey service data if no session data
+  if (performance.isEmpty) {
+    retained = words.where((w) => w.masteryLevel >= 3).length;
+  }
+
+  // Get words needing review
+  final needsReview = await sessionService.getWordsNeedingReview();
+
   return {
     'total': words.length,
     'retained': retained,
-    'needsReview': needsReview,
+    'needsReview': needsReview.length,
   };
 });
+
+// Model for recent words with mastery data
+class RecentWordWithMastery {
+  final String word;
+  final String definition;
+  final int masteryPercent;
+  final int totalAttempts;
+
+  RecentWordWithMastery({
+    required this.word,
+    required this.definition,
+    required this.masteryPercent,
+    required this.totalAttempts,
+  });
+}
 
 class VocabularyPreviewSection extends ConsumerWidget {
   final bool isDark;
@@ -41,7 +121,8 @@ class VocabularyPreviewSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final recentWords = ref.watch(recentWordsProvider);
+    final recentWords = ref.watch(recentWordsWithMasteryProvider);
+    final needsReviewWords = ref.watch(wordsNeedingReviewProvider);
     final stats = ref.watch(vocabularyStatsProvider);
 
     return Column(
@@ -103,7 +184,7 @@ class VocabularyPreviewSection extends ConsumerWidget {
                 ),
                 _VocabStat(
                   value: '${data['retained']}',
-                  label: 'Retained',
+                  label: 'Mastered',
                   color: AppColors.success,
                   isDark: isDark,
                 ),
@@ -128,6 +209,67 @@ class VocabularyPreviewSection extends ConsumerWidget {
         ),
 
         const SizedBox(height: 12),
+
+        // Need Review Section (shows words with < 100% mastery)
+        needsReviewWords.when(
+          data: (words) {
+            if (words.isEmpty) return const SizedBox.shrink();
+            return Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? AppColors.warning.withOpacity(0.1)
+                        : AppColors.warning.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.warning.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.replay_rounded,
+                            color: AppColors.warning,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Need Review',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: AppColors.warning,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ...words
+                          .take(3)
+                          .map(
+                            (word) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: _NeedReviewWordItem(
+                                word: word,
+                                isDark: isDark,
+                              ),
+                            ),
+                          ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+            );
+          },
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+        ),
 
         // Recent Words
         recentWords.when(
@@ -164,7 +306,7 @@ class VocabularyPreviewSection extends ConsumerWidget {
                   ...words.map(
                     (word) => Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: _WordItem(word: word, isDark: isDark),
+                      child: _RecentWordItem(word: word, isDark: isDark),
                     ),
                   ),
                 ],
@@ -226,81 +368,6 @@ class _VocabStat extends StatelessWidget {
         ),
       ],
     );
-  }
-}
-
-class _WordItem extends StatelessWidget {
-  final LearnedWord word;
-  final bool isDark;
-
-  const _WordItem({required this.word, required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    final retentionPercent = (word.masteryLevel / 5 * 100).toInt();
-    return Row(
-      children: [
-        Container(
-          width: 6,
-          height: 6,
-          decoration: BoxDecoration(
-            color: _getRetentionColor(retentionPercent.toDouble()),
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                word.word,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? AppColors.textPrimaryDark
-                      : AppColors.textPrimary,
-                ),
-              ),
-              Text(
-                word.definition,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondary,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: _getRetentionColor(
-              retentionPercent.toDouble(),
-            ).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            '$retentionPercent%',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: _getRetentionColor(retentionPercent.toDouble()),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Color _getRetentionColor(double score) {
-    if (score >= 80) return AppColors.success;
-    if (score >= 50) return AppColors.warning;
-    return AppColors.error;
   }
 }
 
@@ -369,6 +436,152 @@ class _EmptyVocabularyCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Widget for displaying a recent word with session-based mastery
+class _RecentWordItem extends StatelessWidget {
+  final RecentWordWithMastery word;
+  final bool isDark;
+
+  const _RecentWordItem({required this.word, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final retentionPercent = word.masteryPercent;
+    return Row(
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: _getRetentionColor(retentionPercent.toDouble()),
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                word.word,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimary,
+                ),
+              ),
+              Text(
+                word.definition,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: _getRetentionColor(
+              retentionPercent.toDouble(),
+            ).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            '$retentionPercent%',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: _getRetentionColor(retentionPercent.toDouble()),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _getRetentionColor(double score) {
+    if (score >= 80) return AppColors.success;
+    if (score >= 50) return AppColors.warning;
+    return AppColors.error;
+  }
+}
+
+/// Widget for displaying a word that needs review
+class _NeedReviewWordItem extends StatelessWidget {
+  final WordPerformance word;
+  final bool isDark;
+
+  const _NeedReviewWordItem({required this.word, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final retentionPercent = word.masteryPercent;
+    return Row(
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: AppColors.warning,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                word.word,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimary,
+                ),
+              ),
+              Row(
+                children: [
+                  Text(
+                    '${word.totalCorrect}/${word.totalAttempts} correct',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppColors.warning.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            '$retentionPercent%',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.warning,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
