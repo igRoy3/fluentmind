@@ -1,5 +1,6 @@
 /// Game Content Variety System for FluentMind
 /// Ensures minimal repetition and maintains engagement through smart content rotation
+library;
 
 import 'dart:convert';
 import 'dart:math';

@@ -1,5 +1,6 @@
 /// Enhanced Game Result Screen for FluentMind
 /// Shows real performance data with confidence-building feedback
+library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';

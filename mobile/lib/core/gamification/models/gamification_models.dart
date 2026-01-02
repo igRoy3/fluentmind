@@ -1,5 +1,6 @@
 /// Gamification Models for FluentMind
 /// Includes XP, Levels, Streaks, Achievements, and Progress Tracking
+library;
 
 // ===================
 // XP & LEVELING SYSTEM

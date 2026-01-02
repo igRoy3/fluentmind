@@ -152,8 +152,7 @@ class _EnhancedPracticeScreenState
                   _TopicSelector(
                     prompts: speakingPrompts,
                     currentIndex: _currentPromptIndex,
-                    onSelect: (index) =>
-                        setState(() => _currentPromptIndex = index),
+                    onSelect: (index) => _onSectionChange(index),
                     isDark: isDark,
                   ).animate().fadeIn(delay: 100.ms, duration: 400.ms),
 
@@ -245,6 +244,30 @@ class _EnhancedPracticeScreenState
     if (file != null && _recordingSeconds >= 3) {
       await _autoSaveRecording();
     }
+  }
+
+  // Handle section change - reset recording state
+  void _onSectionChange(int newIndex) {
+    // Stop any ongoing recording
+    if (_isRecording) {
+      _timer?.cancel();
+      _audioService.stopRecording();
+    }
+
+    // Stop any ongoing playback
+    if (_isPlaying) {
+      _audioService.stopPlayback();
+    }
+
+    // Reset all recording-related state
+    setState(() {
+      _currentPromptIndex = newIndex;
+      _isRecording = false;
+      _isPlaying = false;
+      _recordingSeconds = 0;
+      _lastRecordingPath = null;
+      _showComparison = false;
+    });
   }
 
   Future<void> _autoSaveRecording() async {
@@ -1051,8 +1074,8 @@ class _ComparisonStat extends StatelessWidget {
   }
 }
 
-// Recording History Item
-class _RecordingHistoryItem extends StatelessWidget {
+// Recording History Item with playback functionality
+class _RecordingHistoryItem extends StatefulWidget {
   final VoiceRecording recording;
   final bool isBaseline;
   final bool isDark;
@@ -1064,16 +1087,73 @@ class _RecordingHistoryItem extends StatelessWidget {
   });
 
   @override
+  State<_RecordingHistoryItem> createState() => _RecordingHistoryItemState();
+}
+
+class _RecordingHistoryItemState extends State<_RecordingHistoryItem> {
+  final AudioService _audioService = AudioService();
+  bool _isPlaying = false;
+
+  @override
+  void dispose() {
+    _audioService.dispose();
+    super.dispose();
+  }
+
+  Future<void> _playRecording() async {
+    if (widget.recording.filePath.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Recording file not found'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    try {
+      setState(() => _isPlaying = true);
+      await _audioService.playRecording(widget.recording.filePath);
+
+      // Wait for the recording duration then reset state
+      Future.delayed(widget.recording.duration, () {
+        if (mounted) setState(() => _isPlaying = false);
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isPlaying = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not play recording: $e'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _stopPlaying() async {
+    try {
+      await _audioService.stopPlayback();
+      setState(() => _isPlaying = false);
+    } catch (e) {
+      debugPrint('Error stopping playback: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isBaseline
+        color: widget.isBaseline
             ? AppColors.primary.withOpacity(0.05)
-            : (isDark ? AppColors.surfaceDark : AppColors.surface),
+            : (widget.isDark ? AppColors.surfaceDark : AppColors.surface),
         borderRadius: BorderRadius.circular(14),
-        border: isBaseline
+        border: widget.isBaseline
             ? Border.all(color: AppColors.primary.withOpacity(0.3))
             : null,
       ),
@@ -1082,14 +1162,16 @@ class _RecordingHistoryItem extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isBaseline
+              color: widget.isBaseline
                   ? AppColors.primary.withOpacity(0.1)
                   : AppColors.secondary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
-              isBaseline ? Icons.flag_rounded : Icons.mic_rounded,
-              color: isBaseline ? AppColors.primary : AppColors.secondary,
+              widget.isBaseline ? Icons.flag_rounded : Icons.mic_rounded,
+              color: widget.isBaseline
+                  ? AppColors.primary
+                  : AppColors.secondary,
               size: 20,
             ),
           ),
@@ -1102,18 +1184,18 @@ class _RecordingHistoryItem extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        isBaseline
+                        widget.isBaseline
                             ? 'Baseline Recording'
-                            : _formatDate(recording.recordedAt),
+                            : _formatDate(widget.recording.recordedAt),
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          color: isDark
+                          color: widget.isDark
                               ? AppColors.textPrimaryDark
                               : AppColors.textPrimary,
                         ),
                       ),
                     ),
-                    if (isBaseline)
+                    if (widget.isBaseline)
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
@@ -1137,10 +1219,10 @@ class _RecordingHistoryItem extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${recording.duration.inSeconds}s • Practice recording',
+                  '${widget.recording.duration.inSeconds}s • Practice recording',
                   style: TextStyle(
                     fontSize: 12,
-                    color: isDark
+                    color: widget.isDark
                         ? AppColors.textSecondaryDark
                         : AppColors.textSecondary,
                   ),
@@ -1148,6 +1230,25 @@ class _RecordingHistoryItem extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
+            ),
+          ),
+          // Play/Stop button
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: _isPlaying ? _stopPlaying : _playRecording,
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: _isPlaying
+                    ? AppColors.error.withOpacity(0.1)
+                    : AppColors.success.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                _isPlaying ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                color: _isPlaying ? AppColors.error : AppColors.success,
+                size: 24,
+              ),
             ),
           ),
         ],

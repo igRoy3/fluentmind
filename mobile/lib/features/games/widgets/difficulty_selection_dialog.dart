@@ -1,5 +1,6 @@
 /// Difficulty Selection Dialog for FluentMind Games
 /// Allows users to choose difficulty before starting a game
+library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';

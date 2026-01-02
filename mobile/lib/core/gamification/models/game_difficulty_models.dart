@@ -1,5 +1,6 @@
 /// Game Difficulty System Models for FluentMind
 /// Provides 3-level difficulty with adaptive adjustment based on real user performance
+library;
 
 // ===================
 // DIFFICULTY LEVELS

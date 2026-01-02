@@ -261,8 +261,9 @@ class _EnhancedGameResultScreenState
 
   String _getPerformanceSubtitle() {
     final accuracy = widget.session.accuracy;
-    if (accuracy >= 0.9)
+    if (accuracy >= 0.9) {
       return 'You\'re on fire! Perfect or near-perfect score!';
+    }
     if (accuracy >= 0.8) return 'You\'re making amazing progress!';
     if (accuracy >= 0.7) return 'You\'re getting the hang of it!';
     if (accuracy >= 0.5) return 'Every session makes you stronger!';
