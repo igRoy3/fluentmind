@@ -198,51 +198,58 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
 
   // Step 1: Welcome
   Widget _buildWelcomeStep(bool isDark) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmallScreen = screenHeight < 700;
+
     return _OnboardingStepContainer(
       isDark: isDark,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          SizedBox(height: isSmallScreen ? 20 : 60),
           Container(
-            width: 120,
-            height: 120,
+            width: isSmallScreen ? 100 : 120,
+            height: isSmallScreen ? 100 : 120,
             decoration: BoxDecoration(
               gradient: AppColors.primaryGradient,
               borderRadius: BorderRadius.circular(32),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.psychology_rounded,
-              size: 60,
+              size: isSmallScreen ? 50 : 60,
               color: Colors.white,
             ),
           ).animate().scale(duration: 600.ms, curve: Curves.elasticOut),
-          const SizedBox(height: 40),
+          SizedBox(height: isSmallScreen ? 24 : 40),
           Text(
             'Welcome to FluentMind',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+              fontSize: isSmallScreen ? 24 : null,
             ),
             textAlign: TextAlign.center,
           ).animate().fadeIn(delay: 200.ms),
-          const SizedBox(height: 16),
+          SizedBox(height: isSmallScreen ? 12 : 16),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               'Your brain training companion! Sharpen your focus with fun games, expand your vocabulary, and master confident speaking.',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: isDark
                     ? AppColors.textSecondaryDark
                     : AppColors.textSecondary,
+                fontSize: isSmallScreen ? 14 : null,
               ),
               textAlign: TextAlign.center,
             ),
           ).animate().fadeIn(delay: 400.ms),
-          const SizedBox(height: 48),
+          SizedBox(height: isSmallScreen ? 32 : 48),
           _PrimaryButton(
             text: 'Let\'s Get Started',
             onPressed: _nextStep,
           ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2),
+          const SizedBox(height: 32),
         ],
       ),
     );
@@ -250,6 +257,9 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
 
   // Step 2: Name (optional)
   Widget _buildNameStep(bool isDark) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmallScreen = screenHeight < 700;
+
     return _OnboardingStepContainer(
       isDark: isDark,
       showBack: true,
@@ -257,7 +267,7 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 40),
+          SizedBox(height: isSmallScreen ? 20 : 40),
           Text(
             'What should we call you?',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -274,7 +284,7 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
                   : AppColors.textSecondary,
             ),
           ).animate().fadeIn(delay: 100.ms),
-          const SizedBox(height: 32),
+          SizedBox(height: isSmallScreen ? 24 : 32),
           TextField(
             onChanged: (value) => setState(() => _userName = value.trim()),
             decoration: InputDecoration(
@@ -294,7 +304,7 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
               color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
             ),
           ).animate().fadeIn(delay: 200.ms),
-          const Spacer(),
+          SizedBox(height: isSmallScreen ? 32 : 48),
           _PrimaryButton(
             text: 'Continue',
             onPressed: _nextStep,
@@ -321,6 +331,9 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
 
   // Step 3: Learning Goal
   Widget _buildGoalStep(bool isDark) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmallScreen = screenHeight < 700;
+
     return _OnboardingStepContainer(
       isDark: isDark,
       showBack: true,
@@ -328,12 +341,13 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 40),
+          SizedBox(height: isSmallScreen ? 16 : 40),
           Text(
             'What would you like to improve?',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
               color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+              fontSize: isSmallScreen ? 20 : null,
             ),
           ).animate().fadeIn(),
           const SizedBox(height: 8),
@@ -343,24 +357,26 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
               color: isDark
                   ? AppColors.textSecondaryDark
                   : AppColors.textSecondary,
+              fontSize: isSmallScreen ? 14 : null,
             ),
           ).animate().fadeIn(delay: 100.ms),
-          const SizedBox(height: 24),
+          SizedBox(height: isSmallScreen ? 16 : 24),
           ...LearningGoal.values.asMap().entries.map((entry) {
             final goal = entry.value;
             final isSelected = _selectedGoal == goal;
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: EdgeInsets.only(bottom: isSmallScreen ? 8 : 12),
               child: _GoalCard(
                 icon: _getGoalIcon(goal),
                 title: goal.description,
                 isSelected: isSelected,
                 onTap: () => setState(() => _selectedGoal = goal),
                 isDark: isDark,
+                isCompact: isSmallScreen,
               ),
             ).animate().fadeIn(delay: Duration(milliseconds: 150 * entry.key));
           }),
-          const Spacer(),
+          SizedBox(height: isSmallScreen ? 16 : 24),
           _PrimaryButton(
             text: 'Continue',
             onPressed: _selectedGoal != null ? _nextStep : null,
@@ -386,6 +402,9 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
 
   // Step 4: Daily Commitment
   Widget _buildCommitmentStep(bool isDark) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmallScreen = screenHeight < 700;
+
     return _OnboardingStepContainer(
       isDark: isDark,
       showBack: true,
@@ -393,12 +412,13 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 40),
+          SizedBox(height: isSmallScreen ? 16 : 40),
           Text(
             'How much time can you practice daily?',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
               color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+              fontSize: isSmallScreen ? 20 : null,
             ),
           ).animate().fadeIn(),
           const SizedBox(height: 8),
@@ -408,27 +428,29 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
               color: isDark
                   ? AppColors.textSecondaryDark
                   : AppColors.textSecondary,
+              fontSize: isSmallScreen ? 14 : null,
             ),
           ).animate().fadeIn(delay: 100.ms),
-          const SizedBox(height: 24),
+          SizedBox(height: isSmallScreen ? 16 : 24),
           ...DailyCommitment.values.asMap().entries.map((entry) {
             final commitment = entry.value;
             final isSelected = _selectedCommitment == commitment;
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: EdgeInsets.only(bottom: isSmallScreen ? 8 : 12),
               child: _CommitmentCard(
                 minutes: commitment.minutes,
                 label: commitment.label,
                 isSelected: isSelected,
                 onTap: () => setState(() => _selectedCommitment = commitment),
                 isDark: isDark,
+                isCompact: isSmallScreen,
               ),
             ).animate().fadeIn(delay: Duration(milliseconds: 150 * entry.key));
           }),
-          const Spacer(),
-          if (_selectedCommitment != null)
+          if (_selectedCommitment != null) ...[
+            SizedBox(height: isSmallScreen ? 12 : 16),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
               decoration: BoxDecoration(
                 color: AppColors.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(16),
@@ -438,7 +460,7 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
                   Icon(
                     Icons.calendar_today_rounded,
                     color: AppColors.primary,
-                    size: 20,
+                    size: isSmallScreen ? 18 : 20,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -447,13 +469,15 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
                       style: TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.w500,
+                        fontSize: isSmallScreen ? 13 : 14,
                       ),
                     ),
                   ),
                 ],
               ),
             ).animate().fadeIn(),
-          const SizedBox(height: 16),
+          ],
+          SizedBox(height: isSmallScreen ? 16 : 24),
           _PrimaryButton(
             text: 'Continue',
             onPressed: _selectedCommitment != null ? _nextStep : null,
@@ -466,6 +490,9 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
 
   // Step 5: Voice Baseline Recording
   Widget _buildBaselineStep(bool isDark) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmallScreen = screenHeight < 700;
+
     return _OnboardingStepContainer(
       isDark: isDark,
       showBack: true,
@@ -473,12 +500,13 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 40),
+          SizedBox(height: isSmallScreen ? 16 : 40),
           Text(
             'Record Your Starting Point',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
               color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+              fontSize: isSmallScreen ? 20 : null,
             ),
           ).animate().fadeIn(),
           const SizedBox(height: 8),
@@ -488,11 +516,12 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
               color: isDark
                   ? AppColors.textSecondaryDark
                   : AppColors.textSecondary,
+              fontSize: isSmallScreen ? 14 : null,
             ),
           ).animate().fadeIn(delay: 100.ms),
-          const SizedBox(height: 24),
+          SizedBox(height: isSmallScreen ? 16 : 24),
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
             decoration: BoxDecoration(
               color: isDark ? AppColors.surfaceDark : Colors.white,
               borderRadius: BorderRadius.circular(20),
@@ -508,9 +537,9 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
                 Icon(
                   Icons.lightbulb_outline_rounded,
                   color: AppColors.accentYellow,
-                  size: 32,
+                  size: isSmallScreen ? 28 : 32,
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: isSmallScreen ? 8 : 12),
                 Text(
                   'Speak about: "Describe your ideal day"',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -518,23 +547,25 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
                     color: isDark
                         ? AppColors.textPrimaryDark
                         : AppColors.textPrimary,
+                    fontSize: isSmallScreen ? 15 : null,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: isSmallScreen ? 6 : 8),
                 Text(
                   'Don\'t worry about being perfect—just speak naturally!',
                   style: TextStyle(
                     color: isDark
                         ? AppColors.textSecondaryDark
                         : AppColors.textSecondary,
+                    fontSize: isSmallScreen ? 13 : null,
                   ),
                   textAlign: TextAlign.center,
                 ),
               ],
             ),
           ).animate().fadeIn(delay: 200.ms),
-          const SizedBox(height: 32),
+          SizedBox(height: isSmallScreen ? 20 : 32),
           Center(
             child: _RecordButton(
               isRecording: _isRecording,
@@ -542,10 +573,11 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
               hasRecording: _baselineRecording != null,
               onTap: _isRecording ? _stopRecording : _startRecording,
               isDark: isDark,
+              isCompact: isSmallScreen,
             ),
           ).animate().fadeIn(delay: 300.ms),
           if (_baselineRecording != null) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: isSmallScreen ? 12 : 16),
             Center(
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -570,6 +602,7 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
                       style: TextStyle(
                         color: AppColors.success,
                         fontWeight: FontWeight.w500,
+                        fontSize: isSmallScreen ? 13 : 14,
                       ),
                     ),
                   ],
@@ -577,12 +610,12 @@ class _NewOnboardingScreenState extends ConsumerState<NewOnboardingScreen> {
               ),
             ).animate().fadeIn(),
           ],
-          const Spacer(),
+          SizedBox(height: isSmallScreen ? 24 : 32),
           _PrimaryButton(
             text: 'Start My Journey',
             onPressed: _completeOnboarding,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: isSmallScreen ? 8 : 12),
           Center(
             child: TextButton(
               onPressed: _completeOnboarding,
@@ -638,7 +671,12 @@ class _OnboardingStepContainer extends StatelessWidget {
                 ),
               ),
             ),
-          Expanded(child: child),
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: child,
+            ),
+          ),
         ],
       ),
     );
@@ -682,6 +720,7 @@ class _GoalCard extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final bool isDark;
+  final bool isCompact;
 
   const _GoalCard({
     required this.icon,
@@ -689,6 +728,7 @@ class _GoalCard extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     required this.isDark,
+    this.isCompact = false,
   });
 
   @override
@@ -697,7 +737,7 @@ class _GoalCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isCompact ? 12 : 16),
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.primary.withOpacity(0.1)
@@ -711,8 +751,8 @@ class _GoalCard extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 48,
-              height: 48,
+              width: isCompact ? 40 : 48,
+              height: isCompact ? 40 : 48,
               decoration: BoxDecoration(
                 color: isSelected
                     ? AppColors.primary.withOpacity(0.2)
@@ -723,6 +763,7 @@ class _GoalCard extends StatelessWidget {
               ),
               child: Icon(
                 icon,
+                size: isCompact ? 20 : 24,
                 color: isSelected
                     ? AppColors.primary
                     : (isDark
@@ -735,7 +776,7 @@ class _GoalCard extends StatelessWidget {
               child: Text(
                 title,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: isCompact ? 14 : 16,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: isDark
                       ? AppColors.textPrimaryDark
@@ -744,7 +785,11 @@ class _GoalCard extends StatelessWidget {
               ),
             ),
             if (isSelected)
-              Icon(Icons.check_circle_rounded, color: AppColors.primary),
+              Icon(
+                Icons.check_circle_rounded,
+                color: AppColors.primary,
+                size: isCompact ? 20 : 24,
+              ),
           ],
         ),
       ),
@@ -758,6 +803,7 @@ class _CommitmentCard extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final bool isDark;
+  final bool isCompact;
 
   const _CommitmentCard({
     required this.minutes,
@@ -765,6 +811,7 @@ class _CommitmentCard extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     required this.isDark,
+    this.isCompact = false,
   });
 
   @override
@@ -773,7 +820,7 @@ class _CommitmentCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(isCompact ? 14 : 20),
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.primary.withOpacity(0.1)
@@ -787,8 +834,8 @@ class _CommitmentCard extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 56,
-              height: 56,
+              width: isCompact ? 48 : 56,
+              height: isCompact ? 48 : 56,
               decoration: BoxDecoration(
                 color: isSelected
                     ? AppColors.primary
@@ -801,7 +848,7 @@ class _CommitmentCard extends StatelessWidget {
                 child: Text(
                   '$minutes',
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: isCompact ? 17 : 20,
                     fontWeight: FontWeight.bold,
                     color: isSelected
                         ? Colors.white
@@ -820,17 +867,18 @@ class _CommitmentCard extends StatelessWidget {
                   Text(
                     '$minutes minutes/day',
                     style: TextStyle(
-                      fontSize: 17,
+                      fontSize: isCompact ? 15 : 17,
                       fontWeight: FontWeight.w600,
                       color: isDark
                           ? AppColors.textPrimaryDark
                           : AppColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: isCompact ? 2 : 4),
                   Text(
                     label,
                     style: TextStyle(
+                      fontSize: isCompact ? 12 : 14,
                       color: isDark
                           ? AppColors.textSecondaryDark
                           : AppColors.textSecondary,
@@ -840,7 +888,11 @@ class _CommitmentCard extends StatelessWidget {
               ),
             ),
             if (isSelected)
-              Icon(Icons.check_circle_rounded, color: AppColors.primary),
+              Icon(
+                Icons.check_circle_rounded,
+                color: AppColors.primary,
+                size: isCompact ? 20 : 24,
+              ),
           ],
         ),
       ),
@@ -854,6 +906,7 @@ class _RecordButton extends StatelessWidget {
   final bool hasRecording;
   final VoidCallback onTap;
   final bool isDark;
+  final bool isCompact;
 
   const _RecordButton({
     required this.isRecording,
@@ -861,18 +914,22 @@ class _RecordButton extends StatelessWidget {
     required this.hasRecording,
     required this.onTap,
     required this.isDark,
+    this.isCompact = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final normalSize = isCompact ? 70.0 : 80.0;
+    final recordingSize = isCompact ? 88.0 : 100.0;
+
     return Column(
       children: [
         GestureDetector(
           onTap: onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            width: isRecording ? 100 : 80,
-            height: isRecording ? 100 : 80,
+            width: isRecording ? recordingSize : normalSize,
+            height: isRecording ? recordingSize : normalSize,
             decoration: BoxDecoration(
               gradient: isRecording
                   ? LinearGradient(
@@ -895,17 +952,17 @@ class _RecordButton extends StatelessWidget {
             child: Icon(
               isRecording ? Icons.stop_rounded : Icons.mic_rounded,
               color: Colors.white,
-              size: isRecording ? 40 : 36,
+              size: isRecording ? (isCompact ? 36 : 40) : (isCompact ? 32 : 36),
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: isCompact ? 12 : 16),
         Text(
           isRecording
               ? '${seconds}s / 30s'
               : (hasRecording ? 'Tap to re-record' : 'Tap to start'),
           style: TextStyle(
-            fontSize: 16,
+            fontSize: isCompact ? 14 : 16,
             fontWeight: FontWeight.w500,
             color: isDark
                 ? AppColors.textSecondaryDark

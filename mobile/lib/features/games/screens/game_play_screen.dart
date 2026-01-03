@@ -73,10 +73,16 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
   bool _canTap = true;
   int _pairCount = 6;
 
+  // Memory Match Timer
+  Timer? _memoryTimer;
+  int _memoryTimeLeft = 0;
+  int _memoryTimeTotal = 0; // Time per set based on difficulty
+
   // Word Scramble game variables
   String _originalWord = '';
   String _scrambledWord = '';
   String _hint = '';
+  String _lastFailedWord = ''; // Store the word to show on game over
   final TextEditingController _answerController = TextEditingController();
   final FocusNode _answerFocusNode = FocusNode();
 
@@ -547,6 +553,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
   // Restart the current game
   void _restartGame() {
     _mathTimer?.cancel();
+    _memoryTimer?.cancel();
     setState(() {
       _score = 0;
       _currentQuestion = 0;
@@ -557,6 +564,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
       _correctAnswers = 0;
       _showingFeedback = false;
       _lastAnswerCorrect = null;
+      _lastFailedWord = '';
     });
     _initializeGame();
   }
@@ -950,7 +958,70 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
     _matches = 0;
     _firstCard = null;
     _secondCard = null;
+
+    // Set time based on difficulty
+    switch (_difficulty) {
+      case GameDifficulty.beginner:
+        _memoryTimeTotal = 60; // 60 seconds
+        break;
+      case GameDifficulty.intermediate:
+        _memoryTimeTotal = 45; // 45 seconds
+        break;
+      case GameDifficulty.advanced:
+        _memoryTimeTotal = 30; // 30 seconds
+        break;
+    }
+    _memoryTimeLeft = _memoryTimeTotal;
+
+    // Start timer
+    _startMemoryTimer();
+
     setState(() {});
+  }
+
+  void _startMemoryTimer() {
+    _memoryTimer?.cancel();
+    _memoryTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted || _gameOver) {
+        timer.cancel();
+        return;
+      }
+
+      setState(() {
+        _memoryTimeLeft--;
+      });
+
+      if (_memoryTimeLeft <= 0) {
+        timer.cancel();
+        _handleMemoryTimeUp();
+      }
+    });
+  }
+
+  void _handleMemoryTimeUp() {
+    if (_gameOver) return;
+
+    // Reset current selection
+    if (_firstCard != null) {
+      _revealed[_firstCard!] = false;
+    }
+    if (_secondCard != null) {
+      _revealed[_secondCard!] = false;
+    }
+    _firstCard = null;
+    _secondCard = null;
+    _canTap = true;
+
+    // Lose a life
+    _loseLife();
+
+    // If still alive, reset timer for next attempt
+    if (_currentLives > 0 && !_gameOver) {
+      setState(() {
+        _memoryTimeLeft = _memoryTimeTotal;
+      });
+      _startMemoryTimer();
+    }
   }
 
   void _handleCardTap(int index) {
@@ -978,7 +1049,15 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
         _secondCard = null;
         _canTap = true;
 
+        // Reset timer on successful match (only if game not finished)
+        if (_matches < _pairCount) {
+          setState(() {
+            _memoryTimeLeft = _memoryTimeTotal;
+          });
+        }
+
         if (_matches == _pairCount) {
+          _memoryTimer?.cancel();
           _endGame();
         }
       } else {
@@ -1092,6 +1171,8 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
       );
       _generateWordScramble();
     } else if (_answerController.text.isNotEmpty) {
+      // Store the word for game over display before losing life
+      _lastFailedWord = _originalWord;
       _loseLife();
       _answerController.clear();
     }
@@ -1392,6 +1473,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
   @override
   void dispose() {
     _mathTimer?.cancel();
+    _memoryTimer?.cancel();
     _shakeController.dispose();
     _pulseController.dispose();
     _answerController.dispose();
@@ -2013,20 +2095,108 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     int crossAxisCount = _pairCount <= 4 ? 4 : (_pairCount <= 6 ? 4 : 4);
 
+    // Calculate timer color based on time left
+    Color timerColor;
+    if (_memoryTimeLeft <= 10) {
+      timerColor = Colors.red;
+    } else if (_memoryTimeLeft <= 20) {
+      timerColor = Colors.orange;
+    } else {
+      timerColor = Colors.green;
+    }
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          Text(
-            'Matches: $_matches / $_pairCount',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondary,
+          // Timer and Matches row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Matches counter
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.cardDark : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      size: 18,
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '$_matches / $_pairCount',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Timer display
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: _withOpacity(timerColor, 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _withOpacity(timerColor, 0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.timer, size: 18, color: timerColor),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${_memoryTimeLeft}s',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: timerColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          // Timer progress bar
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: _memoryTimeTotal > 0
+                  ? _memoryTimeLeft / _memoryTimeTotal
+                  : 0,
+              backgroundColor: isDark
+                  ? AppColors.surfaceDark
+                  : Colors.grey.shade200,
+              valueColor: AlwaysStoppedAnimation<Color>(timerColor),
+              minHeight: 6,
             ),
           ),
+
           const SizedBox(height: 16),
           Expanded(
             child: GridView.builder(
@@ -2643,6 +2813,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
   // ==================== GAME OVER SCREEN ====================
   Widget _buildGameOverScreen() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isWordScramble = widget.gameId == 'word_scramble';
 
     return Center(
       child: Padding(
@@ -2705,6 +2876,48 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                               : AppColors.textPrimary,
                         ),
                       ),
+
+                      // Show the answer for Word Scramble if player failed
+                      if (isWordScramble && _lastFailedWord.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _withOpacity(Colors.blue, 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _withOpacity(Colors.blue, 0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                'The word was:',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: isDark
+                                      ? AppColors.textSecondaryDark
+                                      : AppColors.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _lastFailedWord.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue,
+                                  letterSpacing: 2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
 
                       const SizedBox(height: 24),
 
@@ -2774,6 +2987,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                                   _maxCombo = 0;
                                   _correctAnswers = 0;
                                   _gameOver = false;
+                                  _lastFailedWord = '';
                                 });
                                 _initializeGame();
                               },
