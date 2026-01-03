@@ -94,40 +94,14 @@ class PersistentAuthService {
   Future<String> getInitialRoute() async {
     await _initPrefs();
 
-    // CRITICAL: Wait for Firebase Auth to fully initialize
-    // On cold start, currentUser might be null until Firebase restores the session
-    User? firebaseUser = _firebaseAuth.currentUser;
+    // Simple approach: Just wait a reasonable time for Firebase to initialize
+    // Firebase Auth on mobile has automatic persistence, we just need to give it time
+    await Future.delayed(const Duration(seconds: 1));
 
-    // If no user immediately available, we need to wait for Firebase to restore
-    if (firebaseUser == null) {
-      // Give Firebase time to restore the session from disk
-      // Use a completer to properly wait for auth state
-      try {
-        await Future.delayed(const Duration(milliseconds: 500));
-        firebaseUser = _firebaseAuth.currentUser;
+    // Now check the current user
+    final firebaseUser = _firebaseAuth.currentUser;
 
-        // If still null, wait a bit more and try listening to auth changes
-        if (firebaseUser == null) {
-          await Future.delayed(const Duration(milliseconds: 500));
-          firebaseUser = _firebaseAuth.currentUser;
-        }
-
-        // Final attempt - listen to stream with timeout
-        if (firebaseUser == null) {
-          firebaseUser = await _firebaseAuth
-              .authStateChanges()
-              .where((user) => user != null) // Skip initial null
-              .first
-              .timeout(
-                const Duration(seconds: 2),
-                onTimeout: () => _firebaseAuth.currentUser,
-              );
-        }
-      } catch (_) {
-        // Last resort - check currentUser
-        firebaseUser = _firebaseAuth.currentUser;
-      }
-    }
+    print('🔐 Auth check: User is ${firebaseUser?.uid ?? "null"}');
 
     // Check if the new personalized onboarding has been completed
     final journeyService = UserJourneyService();
@@ -139,6 +113,8 @@ class PersistentAuthService {
       await markLoggedIn(firebaseUser.uid);
       await markOnboardingCompleted(); // Mark basic onboarding as done
 
+      print('✅ User authenticated, onboarding: $hasCompletedNewOnboarding');
+
       // Check if they've completed the new personalized onboarding
       if (!hasCompletedNewOnboarding) {
         return '/new-onboarding';
@@ -147,7 +123,8 @@ class PersistentAuthService {
       return '/home';
     }
 
-    // No Firebase user found - check local preferences
+    // No Firebase user found
+    print('❌ No Firebase user found');
     final hasOnboarded = await hasCompletedOnboarding();
 
     if (!hasOnboarded) {
