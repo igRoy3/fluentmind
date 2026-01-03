@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 
 import 'auth_service.dart';
 import 'user_journey_service.dart';
@@ -94,14 +95,42 @@ class PersistentAuthService {
   Future<String> getInitialRoute() async {
     await _initPrefs();
 
-    // Simple approach: Just wait a reasonable time for Firebase to initialize
-    // Firebase Auth on mobile has automatic persistence, we just need to give it time
-    await Future.delayed(const Duration(seconds: 1));
+    // On cold start, Firebase Auth may briefly report `currentUser == null` while it
+    // restores the persisted session. We wait for a *non-null* user for a short window.
+    User? firebaseUser = _firebaseAuth.currentUser;
 
-    // Now check the current user
-    final firebaseUser = _firebaseAuth.currentUser;
+    if (firebaseUser == null) {
+      try {
+        final completer = Completer<User?>();
+        late final StreamSubscription<User?> sub;
 
-    print('🔐 Auth check: User is ${firebaseUser?.uid ?? "null"}');
+        sub = _firebaseAuth.idTokenChanges().listen((user) {
+          if (!completer.isCompleted && user != null) {
+            completer.complete(user);
+            sub.cancel();
+          }
+        });
+
+        // Allow enough time on slower devices / release builds.
+        firebaseUser = await completer.future.timeout(
+          const Duration(seconds: 10),
+          onTimeout: () async {
+            await sub.cancel();
+            return null;
+          },
+        );
+      } catch (_) {
+        // Ignore and fall back to local state below.
+      }
+    }
+
+    // If still null, fall back to local persisted login state to avoid sending
+    // already-signed-in users to the login screen on every cold start.
+    final localLoginState = _prefs?.getBool(_PrefsKeys.isLoggedIn) ?? false;
+
+    print(
+      '🔐 Auth check: firebaseUser=${firebaseUser?.uid ?? "null"}, localLogin=$localLoginState',
+    );
 
     // Check if the new personalized onboarding has been completed
     final journeyService = UserJourneyService();
@@ -120,6 +149,15 @@ class PersistentAuthService {
         return '/new-onboarding';
       }
 
+      return '/home';
+    }
+
+    // Firebase user is null, but local state says they were logged in previously.
+    // Route them into the app and let Firebase finish restoring in the background.
+    if (localLoginState) {
+      if (!hasCompletedNewOnboarding) {
+        return '/new-onboarding';
+      }
       return '/home';
     }
 
