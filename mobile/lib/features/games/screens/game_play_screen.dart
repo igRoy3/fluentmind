@@ -648,6 +648,12 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
         });
         _initializeGame();
       },
+      onCancel: () {
+        // Navigate back to games screen when Maybe Later is pressed
+        if (mounted && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
     );
   }
 
@@ -959,16 +965,16 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
     _firstCard = null;
     _secondCard = null;
 
-    // Set time based on difficulty
+    // Set time based on difficulty (reduced for more challenge)
     switch (_difficulty) {
       case GameDifficulty.beginner:
-        _memoryTimeTotal = 60; // 60 seconds
-        break;
-      case GameDifficulty.intermediate:
         _memoryTimeTotal = 45; // 45 seconds
         break;
+      case GameDifficulty.intermediate:
+        _memoryTimeTotal = 35; // 35 seconds
+        break;
       case GameDifficulty.advanced:
-        _memoryTimeTotal = 30; // 30 seconds
+        _memoryTimeTotal = 25; // 25 seconds
         break;
     }
     _memoryTimeLeft = _memoryTimeTotal;
@@ -1000,6 +1006,13 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
 
   void _handleMemoryTimeUp() {
     if (_gameOver) return;
+
+    // Check if all pairs are already matched (user won)
+    if (_matches >= _pairCount) {
+      _memoryTimer?.cancel();
+      _endGame();
+      return;
+    }
 
     // Reset current selection
     if (_firstCard != null) {
@@ -1061,7 +1074,8 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
           _endGame();
         }
       } else {
-        _loseLife();
+        // Wrong match - just flip cards back, NO life deducted
+        // Lives are only lost when timer runs out
         Future.delayed(const Duration(milliseconds: 800), () {
           if (mounted) {
             setState(() {
@@ -1535,8 +1549,14 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
   }
 
   Widget _buildTopBar(bool isDark) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 12 : 16,
+        vertical: isSmallScreen ? 8 : 12,
+      ),
       decoration: BoxDecoration(
         color: isDark ? AppColors.cardDark : Colors.white,
         boxShadow: [
@@ -1553,7 +1573,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
           GestureDetector(
             onTap: _showQuitDialog,
             child: Container(
-              padding: const EdgeInsets.all(8),
+              padding: EdgeInsets.all(isSmallScreen ? 6 : 8),
               decoration: BoxDecoration(
                 color: isDark ? AppColors.surfaceDark : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(12),
@@ -1563,24 +1583,24 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                 color: isDark
                     ? AppColors.textSecondaryDark
                     : AppColors.textSecondary,
-                size: 20,
+                size: isSmallScreen ? 18 : 20,
               ),
             ),
           ),
 
-          const SizedBox(width: 16),
+          SizedBox(width: isSmallScreen ? 10 : 16),
 
           // Lives (Hearts)
           Row(
             children: List.generate(_maxLives, (index) {
               final isActive = index < _currentLives;
               return Padding(
-                padding: const EdgeInsets.only(right: 4),
+                padding: EdgeInsets.only(right: isSmallScreen ? 2 : 4),
                 child:
                     Icon(
                           isActive ? Icons.favorite : Icons.favorite_border,
                           color: isActive ? Colors.red : Colors.grey.shade400,
-                          size: 24,
+                          size: isSmallScreen ? 18 : 24,
                         )
                         .animate(target: isActive ? 1 : 0)
                         .scale(
@@ -1597,7 +1617,10 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
           // Combo indicator
           if (_combo > 1)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: EdgeInsets.symmetric(
+                horizontal: isSmallScreen ? 8 : 12,
+                vertical: isSmallScreen ? 4 : 6,
+              ),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Colors.orange, Colors.deepOrange],
@@ -1607,43 +1630,50 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.local_fire_department,
                     color: Colors.white,
-                    size: 16,
+                    size: isSmallScreen ? 12 : 16,
                   ),
-                  const SizedBox(width: 4),
+                  SizedBox(width: isSmallScreen ? 2 : 4),
                   Text(
                     '${_combo}x',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      fontSize: isSmallScreen ? 11 : 14,
                     ),
                   ),
                 ],
               ),
             ).animate().scale(duration: 200.ms),
 
-          const SizedBox(width: 12),
+          SizedBox(width: isSmallScreen ? 8 : 12),
 
           // Score
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: EdgeInsets.symmetric(
+              horizontal: isSmallScreen ? 10 : 16,
+              vertical: isSmallScreen ? 6 : 8,
+            ),
             decoration: BoxDecoration(
               color: _withOpacity(AppColors.primary, 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
               children: [
-                Icon(Icons.stars_rounded, color: AppColors.primary, size: 18),
-                const SizedBox(width: 6),
+                Icon(
+                  Icons.stars_rounded,
+                  color: AppColors.primary,
+                  size: isSmallScreen ? 14 : 18,
+                ),
+                SizedBox(width: isSmallScreen ? 4 : 6),
                 Text(
                   '$_score',
                   style: TextStyle(
                     color: AppColors.primary,
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: isSmallScreen ? 13 : 16,
                   ),
                 ),
               ],
@@ -1676,58 +1706,74 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
   // ==================== MATH SPEED UI ====================
   Widget _buildMathGame() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
     final timerProgress = _mathTimeTotal > 0
         ? _mathTimeLeft / _mathTimeTotal
         : 0.0;
     final isLowTime = _mathTimeLeft <= 3;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 12 : 16,
+        vertical: isSmallScreen ? 6 : 8,
+      ),
       child: Column(
         children: [
           // Timer Bar with animated progress
-          _buildTimerBar(isDark, timerProgress, isLowTime),
+          _buildTimerBar(isDark, timerProgress, isLowTime, isSmallScreen),
 
-          const SizedBox(height: 12),
+          SizedBox(height: isSmallScreen ? 8 : 12),
 
           // Math equation card - Compact
-          Expanded(flex: 3, child: _buildMathEquationCard(isDark)),
+          Expanded(
+            flex: 3,
+            child: _buildMathEquationCard(isDark, isSmallScreen),
+          ),
 
-          const SizedBox(height: 12),
+          SizedBox(height: isSmallScreen ? 8 : 12),
 
           // Answer display box
-          _buildAnswerDisplay(isDark),
+          _buildAnswerDisplay(isDark, isSmallScreen),
 
-          const SizedBox(height: 12),
+          SizedBox(height: isSmallScreen ? 8 : 12),
 
           // Number pad
-          Expanded(flex: 4, child: _buildNumberPad(isDark)),
+          Expanded(flex: 4, child: _buildNumberPad(isDark, isSmallScreen)),
         ],
       ),
     );
   }
 
-  Widget _buildTimerBar(bool isDark, double progress, bool isLowTime) {
+  Widget _buildTimerBar(
+    bool isDark,
+    double progress,
+    bool isLowTime,
+    bool isSmallScreen,
+  ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: 4,
+        vertical: isSmallScreen ? 6 : 8,
+      ),
       child: Column(
         children: [
           Row(
             children: [
               Icon(
                 Icons.timer_outlined,
-                size: 18,
+                size: isSmallScreen ? 14 : 18,
                 color: isLowTime
                     ? Colors.red
                     : (isDark
                           ? AppColors.textSecondaryDark
                           : AppColors.textSecondary),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: isSmallScreen ? 4 : 8),
               Text(
                 '${_mathTimeLeft}s',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: isSmallScreen ? 14 : 16,
                   fontWeight: FontWeight.bold,
                   color: isLowTime ? Colors.red : AppColors.primary,
                 ),
@@ -1736,7 +1782,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
               Text(
                 'Q${_currentQuestion + 1}',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: isSmallScreen ? 12 : 14,
                   color: isDark
                       ? AppColors.textSecondaryDark
                       : AppColors.textSecondary,
@@ -1744,7 +1790,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: isSmallScreen ? 4 : 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
@@ -1755,7 +1801,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                     ? Colors.red
                     : (progress > 0.5 ? Colors.green : Colors.orange),
               ),
-              minHeight: 8,
+              minHeight: isSmallScreen ? 6 : 8,
             ),
           ).animate(target: isLowTime ? 1 : 0).shake(hz: 4, duration: 200.ms),
         ],
@@ -1763,10 +1809,13 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
     );
   }
 
-  Widget _buildMathEquationCard(bool isDark) {
+  Widget _buildMathEquationCard(bool isDark, bool isSmallScreen) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      padding: EdgeInsets.symmetric(
+        vertical: isSmallScreen ? 14 : 20,
+        horizontal: isSmallScreen ? 12 : 16,
+      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -1779,7 +1828,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                     ? [AppColors.cardDark, AppColors.surfaceDark]
                     : [Colors.white, Colors.grey.shade50]),
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(isSmallScreen ? 18 : 24),
         boxShadow: [
           BoxShadow(
             color: _showingFeedback
@@ -1804,7 +1853,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                 Text(
                   '$_num1',
                   style: TextStyle(
-                    fontSize: 42,
+                    fontSize: isSmallScreen ? 32 : 42,
                     fontWeight: FontWeight.bold,
                     color: _showingFeedback
                         ? Colors.white
@@ -1814,10 +1863,12 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isSmallScreen ? 10 : 16,
+                  ),
                   child: Container(
-                    width: 48,
-                    height: 48,
+                    width: isSmallScreen ? 36 : 48,
+                    height: isSmallScreen ? 36 : 48,
                     decoration: BoxDecoration(
                       color: _showingFeedback
                           ? _withOpacity(Colors.white, 0.2)
@@ -1828,7 +1879,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                       child: Text(
                         _operator,
                         style: TextStyle(
-                          fontSize: 28,
+                          fontSize: isSmallScreen ? 22 : 28,
                           fontWeight: FontWeight.bold,
                           color: _showingFeedback
                               ? Colors.white
@@ -1841,7 +1892,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                 Text(
                   '$_num2',
                   style: TextStyle(
-                    fontSize: 42,
+                    fontSize: isSmallScreen ? 32 : 42,
                     fontWeight: FontWeight.bold,
                     color: _showingFeedback
                         ? Colors.white
@@ -1851,11 +1902,13 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isSmallScreen ? 10 : 16,
+                  ),
                   child: Text(
                     '=',
                     style: TextStyle(
-                      fontSize: 36,
+                      fontSize: isSmallScreen ? 28 : 36,
                       fontWeight: FontWeight.bold,
                       color: _showingFeedback
                           ? Colors.white
@@ -1868,7 +1921,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                 Text(
                   '?',
                   style: TextStyle(
-                    fontSize: 42,
+                    fontSize: isSmallScreen ? 32 : 42,
                     fontWeight: FontWeight.bold,
                     color: _showingFeedback ? Colors.white : AppColors.primary,
                   ),
@@ -1879,7 +1932,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
 
           // Feedback message
           if (_showingFeedback) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: isSmallScreen ? 8 : 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -1888,17 +1941,19 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                       ? Icons.check_circle
                       : Icons.cancel,
                   color: Colors.white,
-                  size: 24,
+                  size: isSmallScreen ? 18 : 24,
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  _lastAnswerCorrect == true
-                      ? 'Correct! +${(_mathTimeLeft * 2)} time bonus'
-                      : 'Answer: $_correctAnswer',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                SizedBox(width: isSmallScreen ? 6 : 8),
+                Flexible(
+                  child: Text(
+                    _lastAnswerCorrect == true
+                        ? 'Correct! +${(_mathTimeLeft * 2)} time bonus'
+                        : 'Answer: $_correctAnswer',
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 13 : 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ],
@@ -1909,13 +1964,13 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
     );
   }
 
-  Widget _buildAnswerDisplay(bool isDark) {
+  Widget _buildAnswerDisplay(bool isDark, bool isSmallScreen) {
     return Container(
       width: double.infinity,
-      height: 70,
+      height: isSmallScreen ? 55 : 70,
       decoration: BoxDecoration(
         color: isDark ? AppColors.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(isSmallScreen ? 16 : 20),
         border: Border.all(
           color: _userAnswer.isNotEmpty
               ? AppColors.primary
@@ -1934,58 +1989,70 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
         child: Text(
           _userAnswer.isEmpty ? 'Type your answer' : _userAnswer,
           style: TextStyle(
-            fontSize: _userAnswer.isEmpty ? 18 : 36,
+            fontSize: _userAnswer.isEmpty
+                ? (isSmallScreen ? 14 : 18)
+                : (isSmallScreen ? 28 : 36),
             fontWeight: _userAnswer.isEmpty ? FontWeight.w400 : FontWeight.bold,
             color: _userAnswer.isEmpty
                 ? (isDark
                       ? AppColors.textSecondaryDark
                       : AppColors.textSecondary)
                 : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimary),
-            letterSpacing: _userAnswer.isEmpty ? 0 : 4,
+            letterSpacing: _userAnswer.isEmpty ? 0 : (isSmallScreen ? 2 : 4),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildNumberPad(bool isDark) {
+  Widget _buildNumberPad(bool isDark, bool isSmallScreen) {
     return Column(
       children: [
         // Row 1: 1, 2, 3
-        Expanded(child: _buildNumberRow(['1', '2', '3'], isDark)),
-        const SizedBox(height: 8),
+        Expanded(
+          child: _buildNumberRow(['1', '2', '3'], isDark, isSmallScreen),
+        ),
+        SizedBox(height: isSmallScreen ? 6 : 8),
         // Row 2: 4, 5, 6
-        Expanded(child: _buildNumberRow(['4', '5', '6'], isDark)),
-        const SizedBox(height: 8),
+        Expanded(
+          child: _buildNumberRow(['4', '5', '6'], isDark, isSmallScreen),
+        ),
+        SizedBox(height: isSmallScreen ? 6 : 8),
         // Row 3: 7, 8, 9
-        Expanded(child: _buildNumberRow(['7', '8', '9'], isDark)),
-        const SizedBox(height: 8),
+        Expanded(
+          child: _buildNumberRow(['7', '8', '9'], isDark, isSmallScreen),
+        ),
+        SizedBox(height: isSmallScreen ? 6 : 8),
         // Row 4: Backspace, 0, Submit
-        Expanded(child: _buildBottomRow(isDark)),
+        Expanded(child: _buildBottomRow(isDark, isSmallScreen)),
       ],
     );
   }
 
-  Widget _buildNumberRow(List<String> numbers, bool isDark) {
+  Widget _buildNumberRow(
+    List<String> numbers,
+    bool isDark,
+    bool isSmallScreen,
+  ) {
     return Row(
       children: numbers.map((digit) {
         return Expanded(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: _buildNumberButton(digit, isDark),
+            padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 2 : 4),
+            child: _buildNumberButton(digit, isDark, isSmallScreen),
           ),
         );
       }).toList(),
     );
   }
 
-  Widget _buildNumberButton(String number, bool isDark) {
+  Widget _buildNumberButton(String number, bool isDark, bool isSmallScreen) {
     return GestureDetector(
       onTap: () => _onNumberPadTap(number),
       child: Container(
         decoration: BoxDecoration(
           color: isDark ? AppColors.cardDark : Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(isSmallScreen ? 12 : 16),
           boxShadow: [
             BoxShadow(
               color: _withOpacity(Colors.black, isDark ? 0.2 : 0.08),
@@ -1998,7 +2065,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
           child: Text(
             number,
             style: TextStyle(
-              fontSize: 32,
+              fontSize: isSmallScreen ? 24 : 32,
               fontWeight: FontWeight.bold,
               color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
             ),
@@ -2008,19 +2075,19 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
     );
   }
 
-  Widget _buildBottomRow(bool isDark) {
+  Widget _buildBottomRow(bool isDark, bool isSmallScreen) {
     return Row(
       children: [
         // Backspace button
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+            padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 2 : 4),
             child: GestureDetector(
               onTap: _onBackspaceTap,
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.orange.shade100,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(isSmallScreen ? 12 : 16),
                   boxShadow: [
                     BoxShadow(
                       color: _withOpacity(Colors.orange, 0.2),
@@ -2032,7 +2099,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                 child: Center(
                   child: Icon(
                     Icons.backspace_outlined,
-                    size: 28,
+                    size: isSmallScreen ? 22 : 28,
                     color: Colors.orange.shade700,
                   ),
                 ),
@@ -2043,14 +2110,14 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
         // 0 button
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: _buildNumberButton('0', isDark),
+            padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 2 : 4),
+            child: _buildNumberButton('0', isDark, isSmallScreen),
           ),
         ),
         // Submit button
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+            padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 2 : 4),
             child: GestureDetector(
               onTap: _onSubmitAnswer,
               child: Container(
@@ -2063,7 +2130,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                   color: _userAnswer.isEmpty
                       ? (isDark ? AppColors.surfaceDark : Colors.grey.shade200)
                       : null,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(isSmallScreen ? 12 : 16),
                   boxShadow: [
                     if (_userAnswer.isNotEmpty)
                       BoxShadow(
@@ -2076,7 +2143,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                 child: Center(
                   child: Icon(
                     Icons.check_rounded,
-                    size: 36,
+                    size: isSmallScreen ? 28 : 36,
                     color: _userAnswer.isNotEmpty
                         ? Colors.white
                         : (isDark ? AppColors.textSecondaryDark : Colors.grey),
@@ -2093,6 +2160,8 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
   // ==================== MEMORY MATCH UI ====================
   Widget _buildMemoryGame() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
     int crossAxisCount = _pairCount <= 4 ? 4 : (_pairCount <= 6 ? 4 : 4);
 
     // Calculate timer color based on time left
@@ -2106,7 +2175,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
     }
 
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
       child: Column(
         children: [
           // Timer and Matches row
@@ -2115,9 +2184,9 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
             children: [
               // Matches counter
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallScreen ? 10 : 12,
+                  vertical: isSmallScreen ? 4 : 6,
                 ),
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.cardDark : Colors.grey.shade100,
@@ -2128,16 +2197,16 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                   children: [
                     Icon(
                       Icons.check_circle,
-                      size: 18,
+                      size: isSmallScreen ? 14 : 18,
                       color: isDark
                           ? AppColors.textSecondaryDark
                           : AppColors.textSecondary,
                     ),
-                    const SizedBox(width: 6),
+                    SizedBox(width: isSmallScreen ? 4 : 6),
                     Text(
                       '$_matches / $_pairCount',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: isSmallScreen ? 12 : 14,
                         fontWeight: FontWeight.w600,
                         color: isDark
                             ? AppColors.textSecondaryDark
@@ -2150,9 +2219,9 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
 
               // Timer display
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallScreen ? 10 : 12,
+                  vertical: isSmallScreen ? 4 : 6,
                 ),
                 decoration: BoxDecoration(
                   color: _withOpacity(timerColor, 0.15),
@@ -2165,12 +2234,16 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.timer, size: 18, color: timerColor),
-                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.timer,
+                      size: isSmallScreen ? 14 : 18,
+                      color: timerColor,
+                    ),
+                    SizedBox(width: isSmallScreen ? 4 : 6),
                     Text(
                       '${_memoryTimeLeft}s',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: isSmallScreen ? 12 : 14,
                         fontWeight: FontWeight.bold,
                         color: timerColor,
                       ),
@@ -2182,7 +2255,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
           ),
 
           // Timer progress bar
-          const SizedBox(height: 12),
+          SizedBox(height: isSmallScreen ? 8 : 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
@@ -2193,18 +2266,18 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                   ? AppColors.surfaceDark
                   : Colors.grey.shade200,
               valueColor: AlwaysStoppedAnimation<Color>(timerColor),
-              minHeight: 6,
+              minHeight: isSmallScreen ? 4 : 6,
             ),
           ),
 
-          const SizedBox(height: 16),
+          SizedBox(height: isSmallScreen ? 10 : 16),
           Expanded(
             child: GridView.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
                 childAspectRatio: 1,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
+                crossAxisSpacing: isSmallScreen ? 6 : 10,
+                mainAxisSpacing: isSmallScreen ? 6 : 10,
               ),
               itemCount: _cards.length,
               itemBuilder: (context, index) {
@@ -2221,7 +2294,9 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                           : (isRevealed
                                 ? _getCardColor(_cards[index])
                                 : (isDark ? AppColors.cardDark : Colors.white)),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(
+                        isSmallScreen ? 12 : 16,
+                      ),
                       boxShadow: [
                         if (!isMatched)
                           BoxShadow(
@@ -2247,14 +2322,14 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                               color: isMatched
                                   ? _getCardColor(_cards[index])
                                   : Colors.white,
-                              size: 32,
+                              size: isSmallScreen ? 24 : 32,
                             )
                           : Icon(
                               Icons.question_mark,
                               color: isDark
                                   ? AppColors.textSecondaryDark
                                   : AppColors.textSecondary,
-                              size: 24,
+                              size: isSmallScreen ? 18 : 24,
                             ),
                     ),
                   ),
@@ -2270,9 +2345,11 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
   // ==================== WORD SCRAMBLE UI ====================
   Widget _buildWordScrambleGame() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
 
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
       child: Column(
         children: [
           const Spacer(),
@@ -2280,19 +2357,22 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
           Text(
             'Unscramble the Word',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: isSmallScreen ? 14 : 16,
               color: isDark
                   ? AppColors.textSecondaryDark
                   : AppColors.textSecondary,
             ),
           ),
 
-          const SizedBox(height: 24),
+          SizedBox(height: isSmallScreen ? 16 : 24),
 
           // Scrambled word display
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+            padding: EdgeInsets.symmetric(
+              vertical: isSmallScreen ? 20 : 32,
+              horizontal: isSmallScreen ? 16 : 24,
+            ),
             decoration: BoxDecoration(
               gradient: AppColors.primaryGradient,
               borderRadius: BorderRadius.circular(24),
@@ -2306,21 +2386,24 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
             ),
             child: Column(
               children: [
-                Text(
-                  _scrambledWord.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 8,
-                    color: Colors.white,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    _scrambledWord.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 24 : 32,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: isSmallScreen ? 4 : 8,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: isSmallScreen ? 8 : 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isSmallScreen ? 10 : 12,
+                    vertical: isSmallScreen ? 4 : 6,
                   ),
                   decoration: BoxDecoration(
                     color: _withOpacity(Colors.white, 0.2),
@@ -2329,16 +2412,17 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                   child: Text(
                     _hint,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: isSmallScreen ? 11 : 13,
                       color: _withOpacity(Colors.white, 0.9),
                     ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ],
             ),
           ).animate().fadeIn(duration: 300.ms),
 
-          const SizedBox(height: 32),
+          SizedBox(height: isSmallScreen ? 20 : 32),
 
           // Answer input
           TextField(
@@ -2347,8 +2431,8 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
             textAlign: TextAlign.center,
             textCapitalization: TextCapitalization.none,
             style: TextStyle(
-              fontSize: 24,
-              letterSpacing: 4,
+              fontSize: isSmallScreen ? 18 : 24,
+              letterSpacing: isSmallScreen ? 2 : 4,
               fontWeight: FontWeight.w600,
               color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
             ),
@@ -2359,6 +2443,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                     ? AppColors.textSecondaryDark
                     : AppColors.textSecondary,
                 letterSpacing: 2,
+                fontSize: isSmallScreen ? 14 : null,
               ),
               filled: true,
               fillColor: isDark ? AppColors.cardDark : Colors.white,
@@ -2366,19 +2451,19 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                 borderRadius: BorderRadius.circular(20),
                 borderSide: BorderSide.none,
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 20,
-                horizontal: 24,
+              contentPadding: EdgeInsets.symmetric(
+                vertical: isSmallScreen ? 14 : 20,
+                horizontal: isSmallScreen ? 16 : 24,
               ),
             ),
             onSubmitted: (_) => _checkWordAnswer(),
           ),
 
-          const SizedBox(height: 20),
+          SizedBox(height: isSmallScreen ? 14 : 20),
 
           SizedBox(
             width: double.infinity,
-            height: 56,
+            height: isSmallScreen ? 48 : 56,
             child: ElevatedButton(
               onPressed: _checkWordAnswer,
               style: ElevatedButton.styleFrom(
@@ -2386,9 +2471,12 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              child: const Text(
+              child: Text(
                 'Submit',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: isSmallScreen ? 16 : 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -2402,9 +2490,16 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
   // ==================== LOGIC SEQUENCE UI ====================
   Widget _buildLogicSequenceGame() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
+
+    // Calculate sequence item size based on screen and sequence length
+    final availableWidth =
+        screenWidth - (isSmallScreen ? 32 : 48) - 32; // padding
+    final itemWidth = (availableWidth / _sequence.length).clamp(36.0, 50.0);
 
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
       child: Column(
         children: [
           const Spacer(),
@@ -2412,7 +2507,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
           Text(
             'Find the Missing Number',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: isSmallScreen ? 14 : 16,
               color: isDark
                   ? AppColors.textSecondaryDark
                   : AppColors.textSecondary,
@@ -2420,25 +2515,34 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
           ),
 
           if (_difficulty == GameDifficulty.beginner) ...[
-            const SizedBox(height: 8),
+            SizedBox(height: isSmallScreen ? 6 : 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: EdgeInsets.symmetric(
+                horizontal: isSmallScreen ? 10 : 12,
+                vertical: isSmallScreen ? 4 : 6,
+              ),
               decoration: BoxDecoration(
                 color: _withOpacity(AppColors.primary, 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 'Hint: $_patternHint',
-                style: TextStyle(fontSize: 13, color: AppColors.primary),
+                style: TextStyle(
+                  fontSize: isSmallScreen ? 11 : 13,
+                  color: AppColors.primary,
+                ),
               ),
             ),
           ],
 
-          const SizedBox(height: 24),
+          SizedBox(height: isSmallScreen ? 16 : 24),
 
           // Sequence display
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            padding: EdgeInsets.symmetric(
+              horizontal: isSmallScreen ? 12 : 16,
+              vertical: isSmallScreen ? 16 : 24,
+            ),
             decoration: BoxDecoration(
               color: isDark ? AppColors.cardDark : Colors.white,
               borderRadius: BorderRadius.circular(24),
@@ -2455,14 +2559,16 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
               children: List.generate(_sequence.length, (index) {
                 final isHidden = index == _missingIndex;
                 return Container(
-                  width: 50,
-                  height: 50,
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: itemWidth,
+                  height: itemWidth,
+                  margin: EdgeInsets.symmetric(
+                    horizontal: isSmallScreen ? 2 : 4,
+                  ),
                   decoration: BoxDecoration(
                     color: isHidden
                         ? _withOpacity(AppColors.primary, 0.15)
                         : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(isSmallScreen ? 8 : 12),
                     border: Border.all(
                       color: isHidden
                           ? AppColors.primary
@@ -2471,16 +2577,22 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                     ),
                   ),
                   child: Center(
-                    child: Text(
-                      isHidden ? '?' : '${_sequence[index]}',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: isHidden
-                            ? AppColors.primary
-                            : (isDark
-                                  ? AppColors.textPrimaryDark
-                                  : AppColors.textPrimary),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Text(
+                          isHidden ? '?' : '${_sequence[index]}',
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 14 : 18,
+                            fontWeight: FontWeight.bold,
+                            color: isHidden
+                                ? AppColors.primary
+                                : (isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimary),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -2489,28 +2601,37 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
             ),
           ).animate().fadeIn(duration: 300.ms),
 
-          const SizedBox(height: 32),
+          SizedBox(height: isSmallScreen ? 20 : 32),
 
           // Options
           Wrap(
-            spacing: 16,
-            runSpacing: 16,
+            spacing: isSmallScreen ? 10 : 16,
+            runSpacing: isSmallScreen ? 10 : 16,
             children: _sequenceOptions.map((option) {
               return SizedBox(
-                width: 100,
-                height: 56,
+                width: isSmallScreen ? 80 : 100,
+                height: isSmallScreen ? 46 : 56,
                 child: ElevatedButton(
                   onPressed: () => _checkSequenceAnswer(option),
                   style: ElevatedButton.styleFrom(
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(
+                        isSmallScreen ? 12 : 16,
+                      ),
                     ),
+                    padding: EdgeInsets.zero,
                   ),
-                  child: Text(
-                    '$option',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        '$option',
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 16 : 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -2527,17 +2648,19 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
   // ==================== CATEGORY SORT UI ====================
   Widget _buildCategorySortGame() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
 
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
       child: Column(
         children: [
-          const SizedBox(height: 16),
+          SizedBox(height: isSmallScreen ? 10 : 16),
 
           Text(
             'Sort into the correct category',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: isSmallScreen ? 14 : 16,
               color: isDark
                   ? AppColors.textSecondaryDark
                   : AppColors.textSecondary,
@@ -2548,9 +2671,9 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
 
           // Item to sort
           Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 48,
-                  vertical: 28,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallScreen ? 32 : 48,
+                  vertical: isSmallScreen ? 20 : 28,
                 ),
                 decoration: BoxDecoration(
                   gradient: AppColors.primaryGradient,
@@ -2563,12 +2686,15 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                     ),
                   ],
                 ),
-                child: Text(
-                  _currentItem,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    _currentItem,
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 22 : 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               )
@@ -2576,7 +2702,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
               .fadeIn(duration: 300.ms)
               .scale(begin: const Offset(0.9, 0.9)),
 
-          const SizedBox(height: 40),
+          SizedBox(height: isSmallScreen ? 28 : 40),
 
           // Category buttons
           Row(
@@ -2587,15 +2713,17 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                   Colors.blue,
                   1,
                   isDark,
+                  isSmallScreen,
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: isSmallScreen ? 10 : 16),
               Expanded(
                 child: _buildCategoryButton(
                   _currentCategory2,
                   Colors.orange,
                   2,
                   isDark,
+                  isSmallScreen,
                 ),
               ),
             ],
@@ -2612,14 +2740,15 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
     Color color,
     int categoryNum,
     bool isDark,
+    bool isSmallScreen,
   ) {
     return GestureDetector(
       onTap: () => _checkCategoryAnswer(categoryNum),
       child: Container(
-        height: 140,
+        height: isSmallScreen ? 110 : 140,
         decoration: BoxDecoration(
           color: isDark ? AppColors.cardDark : Colors.white,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(isSmallScreen ? 18 : 24),
           border: Border.all(color: _withOpacity(color, 0.3), width: 2),
           boxShadow: [
             BoxShadow(
@@ -2633,22 +2762,32 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: EdgeInsets.all(isSmallScreen ? 10 : 14),
               decoration: BoxDecoration(
                 color: _withOpacity(color, 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(_getCategoryIcon(category), color: color, size: 32),
+              child: Icon(
+                _getCategoryIcon(category),
+                color: color,
+                size: isSmallScreen ? 24 : 32,
+              ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              category,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: isDark
-                    ? AppColors.textPrimaryDark
-                    : AppColors.textPrimary,
+            SizedBox(height: isSmallScreen ? 8 : 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  category,
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 13 : 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary,
+                  ),
+                ),
               ),
             ),
           ],
@@ -2683,15 +2822,20 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
   // ==================== PATTERN RECOGNITION UI ====================
   Widget _buildPatternRecognitionGame() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
 
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
       child: Column(
         children: [
-          const SizedBox(height: 16),
+          SizedBox(height: isSmallScreen ? 10 : 16),
 
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: EdgeInsets.symmetric(
+              horizontal: isSmallScreen ? 12 : 16,
+              vertical: isSmallScreen ? 6 : 8,
+            ),
             decoration: BoxDecoration(
               color: _showPattern
                   ? _withOpacity(Colors.orange, 0.1)
@@ -2701,19 +2845,19 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
             child: Text(
               _showPattern ? '👀 Memorize!' : '🧠 Recreate the pattern',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: isSmallScreen ? 14 : 16,
                 fontWeight: FontWeight.w600,
                 color: _showPattern ? Colors.orange : AppColors.primary,
               ),
             ),
           ),
 
-          const SizedBox(height: 8),
+          SizedBox(height: isSmallScreen ? 6 : 8),
 
           Text(
             'Level $_patternLevel',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: isSmallScreen ? 12 : 14,
               color: isDark
                   ? AppColors.textSecondaryDark
                   : AppColors.textSecondary,
@@ -2724,7 +2868,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
 
           // Pattern grid
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(isSmallScreen ? 14 : 20),
             decoration: BoxDecoration(
               color: isDark ? AppColors.cardDark : Colors.white,
               borderRadius: BorderRadius.circular(24),
@@ -2741,8 +2885,8 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: _patternSize,
                 childAspectRatio: 1,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
+                crossAxisSpacing: isSmallScreen ? 6 : 10,
+                mainAxisSpacing: isSmallScreen ? 6 : 10,
               ),
               itemCount: _patternSize * _patternSize,
               itemBuilder: (context, index) {
@@ -2762,7 +2906,9 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                           : (isDark
                                 ? AppColors.surfaceDark
                                 : Colors.grey.shade200),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(
+                        isSmallScreen ? 8 : 12,
+                      ),
                       border: Border.all(
                         color: isActive
                             ? AppColors.primary
@@ -2784,12 +2930,12 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
             ),
           ).animate().fadeIn(duration: 300.ms),
 
-          const SizedBox(height: 32),
+          SizedBox(height: isSmallScreen ? 20 : 32),
 
           if (!_showPattern)
             SizedBox(
               width: double.infinity,
-              height: 56,
+              height: isSmallScreen ? 48 : 56,
               child: ElevatedButton(
                 onPressed: _checkPattern,
                 style: ElevatedButton.styleFrom(
@@ -2797,9 +2943,12 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'Check Pattern',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 16 : 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -2814,13 +2963,15 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
   Widget _buildGameOverScreen() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isWordScramble = widget.gameId == 'word_scramble';
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
         child:
             Container(
-                  padding: const EdgeInsets.all(32),
+                  padding: EdgeInsets.all(isSmallScreen ? 20 : 32),
                   decoration: BoxDecoration(
                     color: isDark ? AppColors.cardDark : Colors.white,
                     borderRadius: BorderRadius.circular(32),
@@ -2837,8 +2988,8 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                     children: [
                       // Trophy icon
                       Container(
-                        width: 100,
-                        height: 100,
+                        width: isSmallScreen ? 80 : 100,
+                        height: isSmallScreen ? 80 : 100,
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
                             colors: [Colors.amber, Colors.orange],
@@ -2854,9 +3005,9 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                             ),
                           ],
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.emoji_events,
-                          size: 50,
+                          size: isSmallScreen ? 40 : 50,
                           color: Colors.white,
                         ),
                       ).animate().scale(
@@ -2864,12 +3015,12 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                         curve: Curves.elasticOut,
                       ),
 
-                      const SizedBox(height: 24),
+                      SizedBox(height: isSmallScreen ? 16 : 24),
 
                       Text(
                         'Game Over!',
                         style: TextStyle(
-                          fontSize: 28,
+                          fontSize: isSmallScreen ? 22 : 28,
                           fontWeight: FontWeight.bold,
                           color: isDark
                               ? AppColors.textPrimaryDark
@@ -2879,11 +3030,11 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
 
                       // Show the answer for Word Scramble if player failed
                       if (isWordScramble && _lastFailedWord.isNotEmpty) ...[
-                        const SizedBox(height: 16),
+                        SizedBox(height: isSmallScreen ? 12 : 16),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 12,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isSmallScreen ? 14 : 20,
+                            vertical: isSmallScreen ? 8 : 12,
                           ),
                           decoration: BoxDecoration(
                             color: _withOpacity(Colors.blue, 0.1),
@@ -2898,20 +3049,23 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                               Text(
                                 'The word was:',
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: isSmallScreen ? 12 : 14,
                                   color: isDark
                                       ? AppColors.textSecondaryDark
                                       : AppColors.textSecondary,
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                _lastFailedWord.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
-                                  letterSpacing: 2,
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  _lastFailedWord.toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: isSmallScreen ? 18 : 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue,
+                                    letterSpacing: 2,
+                                  ),
                                 ),
                               ),
                             ],
@@ -2919,11 +3073,11 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                         ),
                       ],
 
-                      const SizedBox(height: 24),
+                      SizedBox(height: isSmallScreen ? 16 : 24),
 
                       // Stats
                       Container(
-                        padding: const EdgeInsets.all(20),
+                        padding: EdgeInsets.all(isSmallScreen ? 14 : 20),
                         decoration: BoxDecoration(
                           color: isDark
                               ? AppColors.surfaceDark
@@ -2936,24 +3090,27 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                               'Score',
                               '$_score',
                               AppColors.primary,
+                              isSmallScreen,
                             ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: isSmallScreen ? 8 : 12),
                             _buildStatRow(
                               'Correct Answers',
                               '$_currentQuestion',
                               Colors.green,
+                              isSmallScreen,
                             ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: isSmallScreen ? 8 : 12),
                             _buildStatRow(
                               'Max Combo',
                               '${_maxCombo}x',
                               Colors.orange,
+                              isSmallScreen,
                             ),
                           ],
                         ),
                       ),
 
-                      const SizedBox(height: 32),
+                      SizedBox(height: isSmallScreen ? 20 : 32),
 
                       // Buttons
                       Row(
@@ -2962,20 +3119,22 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                             child: OutlinedButton(
                               onPressed: () => context.pop(),
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
+                                padding: EdgeInsets.symmetric(
+                                  vertical: isSmallScreen ? 12 : 16,
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Exit',
-                                style: TextStyle(fontSize: 16),
+                                style: TextStyle(
+                                  fontSize: isSmallScreen ? 14 : 16,
+                                ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          SizedBox(width: isSmallScreen ? 10 : 16),
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () {
@@ -2992,17 +3151,17 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
                                 _initializeGame();
                               },
                               style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
+                                padding: EdgeInsets.symmetric(
+                                  vertical: isSmallScreen ? 12 : 16,
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Play Again',
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: isSmallScreen ? 14 : 16,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -3020,23 +3179,33 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
     );
   }
 
-  Widget _buildStatRow(String label, String value, Color color) {
+  Widget _buildStatRow(
+    String label,
+    String value,
+    Color color,
+    bool isSmallScreen,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 15,
-            color: isDark
-                ? AppColors.textSecondaryDark
-                : AppColors.textSecondary,
+        Flexible(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: isSmallScreen ? 13 : 15,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
+            ),
           ),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding: EdgeInsets.symmetric(
+            horizontal: isSmallScreen ? 12 : 16,
+            vertical: isSmallScreen ? 4 : 6,
+          ),
           decoration: BoxDecoration(
             color: _withOpacity(color, 0.1),
             borderRadius: BorderRadius.circular(12),
@@ -3044,7 +3213,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen>
           child: Text(
             value,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: isSmallScreen ? 14 : 16,
               fontWeight: FontWeight.bold,
               color: color,
             ),

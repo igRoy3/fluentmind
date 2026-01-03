@@ -122,6 +122,17 @@ class GamesScreen extends ConsumerWidget {
                 ),
               ).animate().fadeIn(delay: 200.ms, duration: 400.ms),
 
+              const SizedBox(height: 16),
+
+              // Math Facts Card
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _MathFactsCard(
+                  onTap: () => context.push('/math-facts'),
+                  isDark: isDark,
+                ),
+              ).animate().fadeIn(delay: 250.ms, duration: 400.ms),
+
               const SizedBox(height: 24),
 
               // Other Games Section
@@ -143,50 +154,59 @@ class GamesScreen extends ConsumerWidget {
               // Games Grid
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.85,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                  ),
-                  itemCount: gamesState.availableGames.length,
-                  itemBuilder: (context, index) {
-                    final game = gamesState.availableGames[index];
-                    // Get real best score from game performance provider
-                    final gameStats = gamePerformance[game.id];
-                    final realBestScore = gameStats?.bestScore;
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // Adjust grid based on available width
+                    final screenWidth = MediaQuery.of(context).size.width;
+                    final crossAxisCount = screenWidth < 360 ? 2 : 2;
+                    final childAspectRatio = screenWidth < 360 ? 0.75 : 0.85;
 
-                    return _GameCard(
-                          game: game,
-                          realBestScore: realBestScore,
-                          onTap: () async {
-                            // Show difficulty selection dialog
-                            final difficulty =
-                                await showDifficultySelectionDialog(
-                                  context: context,
-                                  gameId: game.id,
-                                  gameName: game.name,
-                                );
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        childAspectRatio: childAspectRatio,
+                        crossAxisSpacing: screenWidth < 360 ? 12 : 16,
+                        mainAxisSpacing: screenWidth < 360 ? 12 : 16,
+                      ),
+                      itemCount: gamesState.availableGames.length,
+                      itemBuilder: (context, index) {
+                        final game = gamesState.availableGames[index];
+                        // Get real best score from game performance provider
+                        final gameStats = gamePerformance[game.id];
+                        final realBestScore = gameStats?.bestScore;
 
-                            if (difficulty != null && context.mounted) {
-                              ref
-                                  .read(brainGamesProvider.notifier)
-                                  .startGame(game.id);
-                              // Pass difficulty as query parameter
-                              context.push(
-                                '/games/${game.id}?difficulty=${difficulty.index}',
-                              );
-                            }
-                          },
-                        )
-                        .animate(
-                          delay: Duration(milliseconds: 100 * index + 300),
-                        )
-                        .fadeIn(duration: 400.ms)
-                        .slideY(begin: 0.2);
+                        return _GameCard(
+                              game: game,
+                              realBestScore: realBestScore,
+                              onTap: () async {
+                                // Show difficulty selection dialog
+                                final difficulty =
+                                    await showDifficultySelectionDialog(
+                                      context: context,
+                                      gameId: game.id,
+                                      gameName: game.name,
+                                    );
+
+                                if (difficulty != null && context.mounted) {
+                                  ref
+                                      .read(brainGamesProvider.notifier)
+                                      .startGame(game.id);
+                                  // Pass difficulty as query parameter
+                                  context.push(
+                                    '/games/${game.id}?difficulty=${difficulty.index}',
+                                  );
+                                }
+                              },
+                            )
+                            .animate(
+                              delay: Duration(milliseconds: 100 * index + 300),
+                            )
+                            .fadeIn(duration: 400.ms)
+                            .slideY(begin: 0.2);
+                      },
+                    );
                   },
                 ),
               ),
@@ -316,6 +336,121 @@ class _FeaturedGameCard extends StatelessWidget {
   }
 }
 
+class _MathFactsCard extends StatelessWidget {
+  final VoidCallback onTap;
+  final bool isDark;
+
+  const _MathFactsCard({required this.onTap, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF7C3AED), Color(0xFF10B981)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF7C3AED).withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Icon
+            Container(
+              width: isSmallScreen ? 50 : 60,
+              height: isSmallScreen ? 50 : 60,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                Icons.functions_rounded,
+                color: Colors.white,
+                size: isSmallScreen ? 28 : 32,
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Text content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'NEW',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Math Facts',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: isSmallScreen ? 18 : 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Learn tables 11-20, squares & cubes with practice games',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.85),
+                      fontSize: isSmallScreen ? 12 : 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Arrow
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.arrow_forward_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _StatItem extends StatelessWidget {
   final IconData icon;
   final String value;
@@ -329,21 +464,30 @@ class _StatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
+
     return Column(
       children: [
-        Icon(icon, color: Colors.white, size: 28),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
+        Icon(icon, color: Colors.white, size: isSmallScreen ? 22 : 28),
+        SizedBox(height: isSmallScreen ? 4 : 8),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: isSmallScreen ? 18 : 24,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         Text(
           label,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: isSmallScreen ? 10 : 12,
+          ),
         ),
       ],
     );
@@ -391,11 +535,13 @@ class _GameCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
         decoration: BoxDecoration(
           color: isDark ? AppColors.cardDark : Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -411,7 +557,7 @@ class _GameCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [game.color, game.color.withOpacity(0.7)],
@@ -423,48 +569,44 @@ class _GameCard extends StatelessWidget {
               child: Icon(
                 _getIconData(game.iconType),
                 color: Colors.white,
-                size: 32,
+                size: isSmallScreen ? 26 : 32,
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              game.name,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: isDark
-                    ? AppColors.textPrimaryDark
-                    : AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              game.description,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11,
-                color: isDark
-                    ? AppColors.textSecondaryDark
-                    : AppColors.textSecondary,
+            SizedBox(height: isSmallScreen ? 8 : 12),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                game.name,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: isSmallScreen ? 12 : 14,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimary,
+                ),
               ),
             ),
             const Spacer(),
             // High Score - use real data if available
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: game.color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'Best: ${realBestScore ?? game.highScore}',
-                style: TextStyle(
-                  color: game.color,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallScreen ? 8 : 10,
+                  vertical: isSmallScreen ? 3 : 4,
+                ),
+                decoration: BoxDecoration(
+                  color: game.color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Best: ${realBestScore ?? game.highScore}',
+                  style: TextStyle(
+                    color: game.color,
+                    fontWeight: FontWeight.w600,
+                    fontSize: isSmallScreen ? 10 : 12,
+                  ),
                 ),
               ),
             ),

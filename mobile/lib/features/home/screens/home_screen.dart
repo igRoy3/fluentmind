@@ -148,45 +148,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
             SliverToBoxAdapter(
-              child: SizedBox(
-                height: 130,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  children: [
-                    QuickActionCard(
-                      icon: Icons.chat_bubble_outline_rounded,
-                      title: 'Conversation',
-                      subtitle: 'Practice dialogue',
-                      color: AppColors.primary,
-                      onTap: () => context.push('/conversation'),
-                    ),
-                    const SizedBox(width: 12),
-                    QuickActionCard(
-                      icon: Icons.menu_book_rounded,
-                      title: 'Vocabulary',
-                      subtitle: 'Learn new words',
-                      color: AppColors.secondary,
-                      onTap: () => context.push('/vocabulary'),
-                    ),
-                    const SizedBox(width: 12),
-                    QuickActionCard(
-                      icon: Icons.psychology_rounded,
-                      title: 'Brain Games',
-                      subtitle: 'Train your mind',
-                      color: AppColors.accent,
-                      onTap: () => context.push('/games'),
-                    ),
-                    const SizedBox(width: 12),
-                    QuickActionCard(
-                      icon: Icons.record_voice_over_rounded,
-                      title: 'Pronunciation',
-                      subtitle: 'Perfect your accent',
-                      color: AppColors.accentYellow,
-                      onTap: () => context.push('/pronunciation'),
-                    ),
-                  ],
-                ).animate().fadeIn(delay: 400.ms, duration: 500.ms),
+              child: Builder(
+                builder: (context) {
+                  final screenWidth = MediaQuery.of(context).size.width;
+                  final isSmallScreen = screenWidth < 360;
+                  return SizedBox(
+                    height: isSmallScreen ? 110 : 130,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isSmallScreen ? 16 : 20,
+                      ),
+                      children: [
+                        QuickActionCard(
+                          icon: Icons.chat_bubble_outline_rounded,
+                          title: 'Conversation',
+                          subtitle: 'Practice dialogue',
+                          color: AppColors.primary,
+                          onTap: () => context.push('/conversation'),
+                        ),
+                        SizedBox(width: isSmallScreen ? 8 : 12),
+                        QuickActionCard(
+                          icon: Icons.menu_book_rounded,
+                          title: 'Vocabulary',
+                          subtitle: 'Learn new words',
+                          color: AppColors.secondary,
+                          onTap: () => context.push('/vocabulary'),
+                        ),
+                        SizedBox(width: isSmallScreen ? 8 : 12),
+                        QuickActionCard(
+                          icon: Icons.psychology_rounded,
+                          title: 'Brain Games',
+                          subtitle: 'Train your mind',
+                          color: AppColors.accent,
+                          onTap: () => context.push('/games'),
+                        ),
+                        SizedBox(width: isSmallScreen ? 8 : 12),
+                        QuickActionCard(
+                          icon: Icons.record_voice_over_rounded,
+                          title: 'Pronunciation',
+                          subtitle: 'Perfect your accent',
+                          color: AppColors.accentYellow,
+                          onTap: () => context.push('/pronunciation'),
+                        ),
+                      ],
+                    ).animate().fadeIn(delay: 400.ms, duration: 500.ms),
+                  );
+                },
               ),
             ),
 
@@ -241,10 +249,13 @@ class _StartPracticeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
         decoration: BoxDecoration(
           gradient: AppColors.primaryGradient,
           borderRadius: BorderRadius.circular(24),
@@ -262,35 +273,42 @@ class _StartPracticeCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Start Speaking',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Start Speaking',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: isSmallScreen ? 18 : null,
+                          ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: isSmallScreen ? 6 : 8),
                   Text(
                     'Practice your pronunciation with AI feedback',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.white.withOpacity(0.9),
+                      fontSize: isSmallScreen ? 12 : null,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: isSmallScreen ? 10 : 16),
             Container(
-              width: 64,
-              height: 64,
+              width: isSmallScreen ? 50 : 64,
+              height: isSmallScreen ? 50 : 64,
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(isSmallScreen ? 16 : 20),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.mic_rounded,
                 color: Colors.white,
-                size: 32,
+                size: isSmallScreen ? 24 : 32,
               ),
             ),
           ],

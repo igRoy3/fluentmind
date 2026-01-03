@@ -62,7 +62,7 @@ Message:
 ${_messageController.text}
 
 ---
-Sent from FluentMind App v1.0.0
+Sent from FluentMind App v1.2.0
 Device: ${Theme.of(context).platform.name}
 ''';
 

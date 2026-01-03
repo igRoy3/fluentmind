@@ -20,6 +20,10 @@ import '../../features/games/screens/game_play_screen.dart';
 import '../../features/word_association/screens/word_association_home_screen.dart';
 import '../../features/word_association/screens/word_association_play_screen.dart';
 import '../../features/word_association/models/word_association_models.dart';
+import '../../features/math_facts/screens/math_facts_screen.dart';
+import '../../features/math_facts/screens/math_facts_learn_screen.dart';
+import '../../features/math_facts/screens/math_facts_practice_screen.dart';
+import '../../features/math_facts/data/math_facts_data.dart';
 import '../gamification/screens/progress_dashboard_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -155,6 +159,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/progress-dashboard',
         name: 'progress_dashboard',
         builder: (context, state) => const ProgressDashboardScreen(),
+      ),
+
+      // Math Facts Feature
+      GoRoute(
+        path: '/math-facts',
+        name: 'math_facts',
+        builder: (context, state) => const MathFactsScreen(),
+      ),
+      GoRoute(
+        path: '/math-facts/learn',
+        name: 'math_facts_learn',
+        builder: (context, state) {
+          final factType = state.extra as String? ?? 'tables';
+          return MathFactsLearnScreen(factType: factType);
+        },
+      ),
+      GoRoute(
+        path: '/math-facts/practice',
+        name: 'math_facts_practice',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final mode = extra?['mode'] as PracticeMode? ?? PracticeMode.mixed;
+          final level =
+              extra?['level'] as PracticeLevel? ?? PracticeLevel.level1;
+          return MathFactsPracticeScreen(mode: mode, level: level);
+        },
       ),
     ],
   );

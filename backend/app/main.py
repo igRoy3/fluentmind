@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="FluentMind Backend",
     description="AI-powered language learning API",
-    version="1.0.0",
+    version="1.2.0",
     lifespan=lifespan,
     docs_url="/docs" if not settings.is_production else None,  # Disable docs in prod
     redoc_url="/redoc" if not settings.is_production else None,
@@ -125,7 +125,7 @@ async def root():
     return {
         "status": "ok",
         "service": "fluentmind-backend",
-        "version": "1.0.0",
+        "version": "1.2.0",
         "environment": settings.environment,
     }
 

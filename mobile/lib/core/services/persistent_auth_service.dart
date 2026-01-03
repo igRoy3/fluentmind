@@ -92,8 +92,22 @@ class PersistentAuthService {
 
   /// Get the initial route based on auth state
   Future<String> getInitialRoute() async {
-    // Check Firebase auth state first (most reliable)
-    final firebaseUser = _firebaseAuth.currentUser;
+    // Wait for Firebase to restore auth state (important on cold start)
+    // This ensures we don't check currentUser before Firebase has restored the session
+    User? firebaseUser = _firebaseAuth.currentUser;
+
+    // If no user yet, wait briefly for Firebase to restore auth state
+    if (firebaseUser == null) {
+      try {
+        // Wait for auth state to be determined (max 2 seconds)
+        firebaseUser = await _firebaseAuth.authStateChanges().first.timeout(
+          const Duration(seconds: 2),
+          onTimeout: () => null,
+        );
+      } catch (_) {
+        // Timeout or error - proceed with null user
+      }
+    }
 
     // Check if the new personalized onboarding has been completed
     final journeyService = UserJourneyService();

@@ -13,6 +13,8 @@ class HomeGamificationCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(gamificationProvider);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
 
     if (state.isLoading) {
       return const SizedBox.shrink();
@@ -23,7 +25,7 @@ class HomeGamificationCard extends ConsumerWidget {
     return GestureDetector(
       onTap: () => context.push('/progress-dashboard'),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(isSmallScreen ? 14 : 20),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -48,8 +50,8 @@ class HomeGamificationCard extends ConsumerWidget {
               children: [
                 // Level badge
                 Container(
-                  width: 60,
-                  height: 60,
+                  width: isSmallScreen ? 48 : 60,
+                  height: isSmallScreen ? 48 : 60,
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
@@ -60,8 +62,8 @@ class HomeGamificationCard extends ConsumerWidget {
                       children: [
                         Text(
                           '${progress.level}',
-                          style: const TextStyle(
-                            fontSize: 24,
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 18 : 24,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                             height: 1,
@@ -70,7 +72,7 @@ class HomeGamificationCard extends ConsumerWidget {
                         Text(
                           'LVL',
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: isSmallScreen ? 8 : 10,
                             fontWeight: FontWeight.w500,
                             color: Colors.white.withValues(alpha: 0.8),
                           ),
@@ -79,26 +81,30 @@ class HomeGamificationCard extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: isSmallScreen ? 10 : 16),
 
                 // Level info and XP
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        LevelSystem.titles[progress.level - 1],
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          LevelSystem.titles[progress.level - 1],
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 14 : 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '${progress.totalXP} XP',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: isSmallScreen ? 12 : 14,
                           color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ),
@@ -108,9 +114,9 @@ class HomeGamificationCard extends ConsumerWidget {
 
                 // Streak
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isSmallScreen ? 10 : 14,
+                    vertical: isSmallScreen ? 8 : 10,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
@@ -119,12 +125,15 @@ class HomeGamificationCard extends ConsumerWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('🔥', style: TextStyle(fontSize: 18)),
-                      const SizedBox(width: 6),
+                      Text(
+                        '🔥',
+                        style: TextStyle(fontSize: isSmallScreen ? 14 : 18),
+                      ),
+                      SizedBox(width: isSmallScreen ? 4 : 6),
                       Text(
                         '${progress.currentStreak}',
-                        style: const TextStyle(
-                          fontSize: 18,
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 14 : 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
@@ -134,7 +143,7 @@ class HomeGamificationCard extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: isSmallScreen ? 12 : 16),
 
             // Level progress bar
             Column(
@@ -146,42 +155,43 @@ class HomeGamificationCard extends ConsumerWidget {
                     Text(
                       'Level ${progress.level + 1}',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: isSmallScreen ? 10 : 12,
                         color: Colors.white.withValues(alpha: 0.8),
                       ),
                     ),
                     Text(
                       '${progress.currentLevelXP}/${progress.xpToNextLevel} XP',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: isSmallScreen ? 10 : 12,
                         color: Colors.white.withValues(alpha: 0.8),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                Stack(
-                  children: [
-                    Container(
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 500),
-                      height: 8,
-                      width:
-                          MediaQuery.of(context).size.width *
-                          0.85 *
-                          progress.levelProgress,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    return Stack(
+                      children: [
+                        Container(
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 500),
+                          height: 8,
+                          width: constraints.maxWidth * progress.levelProgress,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -200,6 +210,8 @@ class HomeDailyGoalWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final state = ref.watch(gamificationProvider);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
 
     if (state.isLoading) {
       return const SizedBox.shrink();
@@ -211,7 +223,7 @@ class HomeDailyGoalWidget extends ConsumerWidget {
     return GestureDetector(
       onTap: () => context.push('/progress-dashboard'),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
         decoration: BoxDecoration(
           color: isDark ? AppColors.cardDark : Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -227,13 +239,13 @@ class HomeDailyGoalWidget extends ConsumerWidget {
           children: [
             // Circle progress
             SizedBox(
-              width: 50,
-              height: 50,
+              width: isSmallScreen ? 40 : 50,
+              height: isSmallScreen ? 40 : 50,
               child: Stack(
                 children: [
                   CircularProgressIndicator(
                     value: progress,
-                    strokeWidth: 5,
+                    strokeWidth: isSmallScreen ? 4 : 5,
                     backgroundColor: isDark
                         ? AppColors.surfaceVariantDark
                         : AppColors.surfaceVariant,
@@ -248,12 +260,12 @@ class HomeDailyGoalWidget extends ConsumerWidget {
                         ? Icon(
                             Icons.check_rounded,
                             color: AppColors.success,
-                            size: 24,
+                            size: isSmallScreen ? 18 : 24,
                           )
                         : Text(
                             '${(progress * 100).toInt()}%',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: isSmallScreen ? 10 : 12,
                               fontWeight: FontWeight.bold,
                               color: isDark
                                   ? AppColors.textPrimaryDark
@@ -264,33 +276,43 @@ class HomeDailyGoalWidget extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: isSmallScreen ? 10 : 14),
 
             // Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    goal.isCompleted ? 'Daily Goal Complete! 🎉' : 'Daily Goal',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textPrimary,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      goal.isCompleted
+                          ? 'Daily Goal Complete! 🎉'
+                          : 'Daily Goal',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 13 : 15,
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? AppColors.textPrimaryDark
+                            : AppColors.textPrimary,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    goal.isCompleted
-                        ? 'Come back tomorrow!'
-                        : '${goal.xpEarned}/${goal.xpTarget} XP • ${goal.gamesPlayed}/${goal.gamesTarget} games',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark
-                          ? AppColors.textSecondaryDark
-                          : AppColors.textSecondary,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      goal.isCompleted
+                          ? 'Come back tomorrow!'
+                          : '${goal.xpEarned}/${goal.xpTarget} XP • ${goal.gamesPlayed}/${goal.gamesTarget} games',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 10 : 12,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondary,
+                      ),
                     ),
                   ),
                 ],
@@ -299,7 +321,7 @@ class HomeDailyGoalWidget extends ConsumerWidget {
 
             Icon(
               Icons.arrow_forward_ios_rounded,
-              size: 16,
+              size: isSmallScreen ? 14 : 16,
               color: isDark ? AppColors.textHintDark : AppColors.textHint,
             ),
           ],
@@ -317,6 +339,8 @@ class HomeQuickStats extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final state = ref.watch(gamificationProvider);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
 
     if (state.isLoading) {
       return const SizedBox.shrink();
@@ -336,9 +360,10 @@ class HomeQuickStats extends ConsumerWidget {
             Icons.sports_esports_rounded,
             AppColors.primary,
             isDark,
+            isSmallScreen,
           ),
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: isSmallScreen ? 6 : 10),
         Expanded(
           child: _buildQuickStat(
             '${progress.totalWordsLearned}',
@@ -346,9 +371,10 @@ class HomeQuickStats extends ConsumerWidget {
             Icons.book_rounded,
             AppColors.secondary,
             isDark,
+            isSmallScreen,
           ),
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: isSmallScreen ? 6 : 10),
         Expanded(
           child: _buildQuickStat(
             '$unlockedAchievements',
@@ -356,6 +382,7 @@ class HomeQuickStats extends ConsumerWidget {
             Icons.emoji_events_rounded,
             AppColors.accentYellow,
             isDark,
+            isSmallScreen,
           ),
         ),
       ],
@@ -368,9 +395,10 @@ class HomeQuickStats extends ConsumerWidget {
     IconData icon,
     Color color,
     bool isDark,
+    bool isSmallScreen,
   ) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(isSmallScreen ? 10 : 14),
       decoration: BoxDecoration(
         color: isDark ? AppColors.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(14),
@@ -384,20 +412,25 @@ class HomeQuickStats extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+          Icon(icon, color: color, size: isSmallScreen ? 18 : 22),
+          SizedBox(height: isSmallScreen ? 4 : 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: isSmallScreen ? 14 : 18,
+                fontWeight: FontWeight.bold,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
+              ),
             ),
           ),
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: isSmallScreen ? 9 : 11,
               color: isDark
                   ? AppColors.textSecondaryDark
                   : AppColors.textSecondary,

@@ -7,11 +7,13 @@ import '../../../core/theme/app_colors.dart';
 class UniversalGameInstructionsDialog extends StatelessWidget {
   final GameInstructions instructions;
   final VoidCallback onStart;
+  final VoidCallback? onCancel;
 
   const UniversalGameInstructionsDialog({
     super.key,
     required this.instructions,
     required this.onStart,
+    this.onCancel,
   });
 
   @override
@@ -276,7 +278,10 @@ class UniversalGameInstructionsDialog extends StatelessWidget {
 
                 // Cancel button
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onCancel?.call();
+                  },
                   child: Text(
                     'Maybe Later',
                     style: TextStyle(
@@ -429,6 +434,7 @@ Future<void> showGameInstructions(
   BuildContext context, {
   required String gameId,
   required VoidCallback onStart,
+  VoidCallback? onCancel,
 }) {
   final instructions = GameInstructions.forGame(gameId);
   return showDialog(
@@ -437,6 +443,7 @@ Future<void> showGameInstructions(
     builder: (ctx) => UniversalGameInstructionsDialog(
       instructions: instructions,
       onStart: onStart,
+      onCancel: onCancel,
     ),
   );
 }
