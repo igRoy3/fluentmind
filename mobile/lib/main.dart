@@ -28,7 +28,7 @@ class FluentMindApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final router = ref.watch(appRouterProvider);
+    final router = ref.read(appRouterProvider);
     final themeMode = ref.watch(themeModeProvider);
 
     // Update system UI based on theme
