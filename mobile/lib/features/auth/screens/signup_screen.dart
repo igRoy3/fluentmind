@@ -112,21 +112,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         // Mark user as logged in
         await persistentAuthService.markLoggedIn(result.user!.uid);
 
-        // Check if personalized onboarding is needed (should always be for new users)
+        // For NEW users, reset onboarding so they go through the personalized experience
         final journeyService = UserJourneyService();
-        final hasCompletedNewOnboarding = await journeyService
-            .isOnboardingComplete();
+        await journeyService.setOnboardingComplete(false);
 
         if (mounted) {
           _showSuccess(
             'Account created! Please check your email to verify your account.',
           );
-          // New users should always go to onboarding first
-          if (!hasCompletedNewOnboarding) {
-            context.go('/new-onboarding');
-          } else {
-            context.go('/home');
-          }
+          // New users always go to personalized onboarding
+          context.go('/new-onboarding');
         }
       } else {
         _showError(result.error ?? 'Sign up failed');

@@ -21,8 +21,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _navigateToNext() async {
-    // Show splash animation
-    await Future.delayed(const Duration(milliseconds: 2500));
+    // Show splash animation - increased to give Firebase more time to restore auth
+    await Future.delayed(const Duration(milliseconds: 3000));
 
     if (!mounted) return;
 

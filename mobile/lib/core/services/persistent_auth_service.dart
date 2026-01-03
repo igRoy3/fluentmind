@@ -92,20 +92,40 @@ class PersistentAuthService {
 
   /// Get the initial route based on auth state
   Future<String> getInitialRoute() async {
-    // Wait for Firebase to restore auth state (important on cold start)
-    // This ensures we don't check currentUser before Firebase has restored the session
+    await _initPrefs();
+
+    // CRITICAL: Wait for Firebase Auth to fully initialize
+    // On cold start, currentUser might be null until Firebase restores the session
     User? firebaseUser = _firebaseAuth.currentUser;
 
-    // If no user yet, wait briefly for Firebase to restore auth state
+    // If no user immediately available, we need to wait for Firebase to restore
     if (firebaseUser == null) {
+      // Give Firebase time to restore the session from disk
+      // Use a completer to properly wait for auth state
       try {
-        // Wait for auth state to be determined (max 2 seconds)
-        firebaseUser = await _firebaseAuth.authStateChanges().first.timeout(
-          const Duration(seconds: 2),
-          onTimeout: () => null,
-        );
+        await Future.delayed(const Duration(milliseconds: 500));
+        firebaseUser = _firebaseAuth.currentUser;
+
+        // If still null, wait a bit more and try listening to auth changes
+        if (firebaseUser == null) {
+          await Future.delayed(const Duration(milliseconds: 500));
+          firebaseUser = _firebaseAuth.currentUser;
+        }
+
+        // Final attempt - listen to stream with timeout
+        if (firebaseUser == null) {
+          firebaseUser = await _firebaseAuth
+              .authStateChanges()
+              .where((user) => user != null) // Skip initial null
+              .first
+              .timeout(
+                const Duration(seconds: 2),
+                onTimeout: () => _firebaseAuth.currentUser,
+              );
+        }
       } catch (_) {
-        // Timeout or error - proceed with null user
+        // Last resort - check currentUser
+        firebaseUser = _firebaseAuth.currentUser;
       }
     }
 
@@ -115,9 +135,9 @@ class PersistentAuthService {
         .isOnboardingComplete();
 
     if (firebaseUser != null) {
-      // User is authenticated with Firebase
+      // User is authenticated with Firebase - save to local storage
       await markLoggedIn(firebaseUser.uid);
-      await markOnboardingCompleted(); // Assume they've seen onboarding
+      await markOnboardingCompleted(); // Mark basic onboarding as done
 
       // Check if they've completed the new personalized onboarding
       if (!hasCompletedNewOnboarding) {
@@ -127,17 +147,14 @@ class PersistentAuthService {
       return '/home';
     }
 
-    // Check local state
+    // No Firebase user found - check local preferences
     final hasOnboarded = await hasCompletedOnboarding();
-    final isUserLoggedIn = await isLoggedIn();
 
     if (!hasOnboarded) {
+      // First time user - show onboarding
       return '/onboarding';
-    } else if (!isUserLoggedIn) {
-      return '/login';
     } else {
-      // Local state says logged in but Firebase doesn't - clear local state
-      await clearLoginState();
+      // Has onboarded but not logged in - show login
       return '/login';
     }
   }
